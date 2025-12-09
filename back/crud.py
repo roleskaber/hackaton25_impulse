@@ -1,8 +1,8 @@
 from datetime import datetime
 
 from database.db import new_session
-from database.models import Order, ShortURL
-from sqlalchemy import select
+from database.models import Order, ShortURL, User
+from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from exceptions import SlugAlreadyExists
 
@@ -76,4 +76,33 @@ async def create_order_in_db(
         await session.commit()
         await session.refresh(order)
         return order.id
+
+
+async def get_all_users_from_db() -> list[User]:
+    async with new_session() as session:
+        result = await session.execute(select(User))
+        return list(result.scalars().all())
+
+
+async def update_user_in_db(
+    user_id: int,
+    display_name: str | None = None,
+    phone: str | None = None,
+    role: str | None = None,
+) -> User | None:
+    async with new_session() as session:
+        query = select(User).filter_by(id=user_id)
+        result = await session.execute(query)
+        user = result.scalar_one_or_none()
+        if not user:
+            return None
+        if display_name is not None:
+            user.display_name = display_name
+        if phone is not None:
+            user.phone = phone
+        if role is not None:
+            user.role = role
+        await session.commit()
+        await session.refresh(user)
+        return user
     

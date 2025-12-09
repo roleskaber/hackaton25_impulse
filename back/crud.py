@@ -47,6 +47,35 @@ async def get_url_from_db(slug: str) -> str | None:
         query = select(ShortURL).filter_by(slug=slug)
         result = await session.execute(query)
         res: ShortURL | None = result.scalar_one_or_none()
-    return res.long_url if res.long_url else None
+    if not res:
+        return None
+    return res.long_url
+
+
+async def get_event_from_db(slug: str) -> dict | None:
+    """Return all stored fields for the event identified by `slug` as a dict.
+
+    This extracts values while the session is open so callers can safely
+    return or serialize the result.
+    """
+    async with new_session() as session:
+        query = select(ShortURL).filter_by(slug=slug)
+        result = await session.execute(query)
+        res: ShortURL | None = result.scalar_one_or_none()
+        if not res:
+            return None
+        return {
+            "slug": res.slug,
+            "long_url": res.long_url,
+            "name": res.name,
+            "place": res.place,
+            "city": res.city,
+            "event_time": res.event_time,
+            "price": float(res.price),
+            "description": res.description,
+            "purchased_count": res.purchased_count,
+            "seats_total": res.seats_total,
+            "account_id": res.account_id,
+        }
 
     

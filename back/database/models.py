@@ -8,12 +8,12 @@ class Base(DeclarativeBase):
 
 class ShortURL(Base):
     __tablename__ = "short_urls"
-
     slug: Mapped[str] = mapped_column(String(32), primary_key=True, index=True, unique=True)
+    long_url: Mapped[str] = mapped_column(Text, nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     place: Mapped[str] = mapped_column(String(255), nullable=False)
     city: Mapped[str] = mapped_column(String(255), nullable=False)
-    event_time: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    event_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     price: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)
     purchased_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

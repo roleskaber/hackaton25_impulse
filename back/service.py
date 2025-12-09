@@ -2,6 +2,7 @@ from datetime import datetime
 
 from shortener import generate_slug
 from crud import add_slug_to_db, get_url_from_db
+from crud import get_event_from_db
 from exceptions import NoUrlFoundException, ShortenerBaseException, SlugAlreadyExists
 
 
@@ -44,4 +45,12 @@ async def get_event_by_slug(
     if not url:
         raise NoUrlFoundException
     return url
+
+
+async def get_event_details_by_slug(slug: str) -> dict:
+    """Return full event details as a dict or raise NoUrlFoundException."""
+    event = await get_event_from_db(slug)
+    if not event:
+        raise NoUrlFoundException
+    return event
     

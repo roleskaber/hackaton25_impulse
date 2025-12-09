@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 from service import add_event as add_event_service, get_event_by_slug as get_event_by_slug_service
 from firebase_auth import login_user, register_user, send_verification_email
 from exceptions import NoUrlFoundException
+from service import get_event_details_by_slug
 
 
 class EventCreate(BaseModel):
@@ -35,6 +36,19 @@ class LoginRequest(BaseModel):
 
 class VerifyEmailRequest(BaseModel):
     id_token: str = Field(..., description="idToken из Firebase для подтверждения почты")
+
+class EventOut(BaseModel):
+    slug: str
+    long_url: str
+    name: str
+    place: str
+    city: str
+    event_time: datetime
+    price: float
+    description: str
+    purchased_count: int
+    seats_total: int
+    account_id: int
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -77,12 +91,11 @@ async def login(request: LoginRequest):
 async def verify_email(request: VerifyEmailRequest):
     return await send_verification_email(id_token=request.id_token)
 
-
-@app.get("/{slug}")
-async def get_event_by_slug(slug: str):
+@app.get("/{slug}", response_model=EventOut)
+async def get_event_details(slug: str):
     try:
-        long_url = await get_event_by_slug_service(slug=slug)
+        event = await get_event_details_by_slug(slug=slug)
     except NoUrlFoundException:
-        return HTTPException(status.HTTP_404_NOT_FOUND, detail="...")
-    return RedirectResponse(url=long_url, status_code=status.HTTP_302_FOUND)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
+    return event
 

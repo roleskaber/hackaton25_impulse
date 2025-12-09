@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
 from database.db import new_session
-from database.models import Order, ShortURL, User
+from database.models import Order, Event, User
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from exceptions import SlugAlreadyExists
@@ -28,7 +28,7 @@ async def add_slug_to_db(
         if event_time is not None and getattr(event_time, "tzinfo", None) is not None:
             event_time = event_time.astimezone(timezone.utc).replace(tzinfo=None)
 
-        new_slug = ShortURL(
+        new_slug = Event(
             slug=slug,
             long_url=long_url,
             name=name,
@@ -55,9 +55,9 @@ async def add_slug_to_db(
 
 async def get_url_from_db(slug: str) -> str | None:
     async with new_session() as session:
-        query = select(ShortURL).filter_by(slug=slug)
+        query = select(Event).filter_by(slug=slug)
         result = await session.execute(query)
-        res: ShortURL | None = result.scalar_one_or_none()
+        res: Event | None = result.scalar_one_or_none()
     if not res:
         return None
     return res.long_url
@@ -65,9 +65,9 @@ async def get_url_from_db(slug: str) -> str | None:
 
 async def get_event_from_db(slug: str) -> dict | None:
     async with new_session() as session:
-        query = select(ShortURL).filter_by(slug=slug)
+        query = select(Event).filter_by(slug=slug)
         result = await session.execute(query)
-        res: ShortURL | None = result.scalar_one_or_none()
+        res: Event | None = result.scalar_one_or_none()
         if not res:
             return None
         return {
@@ -92,7 +92,7 @@ async def get_events_between_dates(
     start: datetime,
     end: datetime,
     limit: int = 100,
-) -> list[ShortURL]:
+) -> list[Event]:
     async with new_session() as session:
         # Normalize incoming datetimes to UTC-naive to match the DB column
         if start is not None and getattr(start, "tzinfo", None) is not None:
@@ -101,18 +101,18 @@ async def get_events_between_dates(
             end = end.astimezone(timezone.utc).replace(tzinfo=None)
 
         query = (
-            select(ShortURL)
-            .where(ShortURL.event_time.between(start, end))
-            .order_by(ShortURL.event_time.asc())
+            select(Event)
+            .where(Event.event_time.between(start, end))
+            .order_by(Event.event_time.asc())
             .limit(limit)
         )
         result = await session.execute(query)
         return list(result.scalars().all())
 
 
-async def get_event_by_id(event_id: int) -> ShortURL | None:
+async def get_event_by_id(event_id: int) -> Event | None:
     async with new_session() as session:
-        query = select(ShortURL).filter_by(event_id=event_id)
+        query = select(Event).filter_by(event_id=event_id)
         result = await session.execute(query)
         return result.scalar_one_or_none()
 

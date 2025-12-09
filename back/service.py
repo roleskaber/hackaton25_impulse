@@ -9,6 +9,7 @@ from crud import (
     get_url_from_db,
     get_event_from_db,
     update_user_in_db,
+    get_events_between_dates,
 )
 from exceptions import NoUrlFoundException, ShortenerBaseException, SlugAlreadyExists
 
@@ -89,6 +90,27 @@ async def create_order(
         "payment_method": payment_method,
         "people_count": people_count,
     }
+
+
+async def list_events_between_dates(start: datetime, end: datetime, limit: int = 100):
+    events = await get_events_between_dates(start=start, end=end, limit=limit)
+    return [
+        {
+            "event_id": event.event_id,
+            "slug": event.slug,
+            "long_url": event.long_url,
+            "name": event.name,
+            "place": event.place,
+            "city": event.city,
+            "event_time": event.event_time,
+            "price": float(event.price),
+            "description": event.description,
+            "purchased_count": event.purchased_count,
+            "seats_total": event.seats_total,
+            "account_id": event.account_id,
+        }
+        for event in events
+    ]
 
 
 async def get_all_users():

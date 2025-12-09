@@ -82,6 +82,11 @@ class PasswordResetConfirm(BaseModel):
     oob_code: str = Field(..., description="Код из письма Firebase (oobCode)")
     new_password: str = Field(..., min_length=6, description="Новый пароль")
 
+
+class EventsBetweenRequest(BaseModel):
+    start: datetime = Field(..., description="Начальная дата (ISO)")
+    end: datetime = Field(..., description="Конечная дата (ISO)")
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     async with engine.begin() as connection: 
@@ -140,6 +145,11 @@ async def password_reset(request: PasswordResetRequest):
 @app.post("/auth/password-reset/confirm")
 async def password_reset_confirm(request: PasswordResetConfirm):
     return await confirm_password_reset(oob_code=request.oob_code, new_password=request.new_password)
+
+
+@app.post("/events/between")
+async def events_between_dates(payload: EventsBetweenRequest):
+    return await list_events_between_dates(start=payload.start, end=payload.end, limit=100)
 
 
 @app.get("/{slug}")

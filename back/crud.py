@@ -83,6 +83,22 @@ async def get_event_from_db(slug: str) -> dict | None:
         }
 
 
+async def get_events_between_dates(
+    start: datetime,
+    end: datetime,
+    limit: int = 100,
+) -> list[ShortURL]:
+    async with new_session() as session:
+        query = (
+            select(ShortURL)
+            .where(ShortURL.event_time.between(start, end))
+            .order_by(ShortURL.event_time.asc())
+            .limit(limit)
+        )
+        result = await session.execute(query)
+        return list(result.scalars().all())
+
+
 async def get_event_by_id(event_id: int) -> ShortURL | None:
     async with new_session() as session:
         query = select(ShortURL).filter_by(event_id=event_id)

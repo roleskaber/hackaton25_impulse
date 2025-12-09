@@ -76,4 +76,29 @@ async def create_order_in_db(
         await session.commit()
         await session.refresh(order)
         return order.id
+
+
+async def get_all_events() -> list[ShortURL]:
+    async with new_session() as session:
+        query = select(ShortURL).order_by(ShortURL.event_time)
+        result = await session.execute(query)
+        return list(result.scalars().all())
+
+
+async def get_active_events() -> list[ShortURL]:
+    async with new_session() as session:
+        from datetime import datetime
+        now = datetime.now()
+        query = select(ShortURL).filter(ShortURL.event_time >= now).order_by(ShortURL.event_time)
+        result = await session.execute(query)
+        return list(result.scalars().all())
+
+
+async def get_past_events() -> list[ShortURL]:
+    async with new_session() as session:
+        from datetime import datetime
+        now = datetime.now()
+        query = select(ShortURL).filter(ShortURL.event_time < now).order_by(ShortURL.event_time.desc())
+        result = await session.execute(query)
+        return list(result.scalars().all())
     

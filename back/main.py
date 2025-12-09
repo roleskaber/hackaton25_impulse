@@ -1,6 +1,7 @@
 from datetime import datetime
 from fastapi import FastAPI, HTTPException, status
 from fastapi.responses import RedirectResponse
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from database.db import engine
 from database.models import Base
@@ -10,6 +11,7 @@ from service import (
     get_event_by_slug as get_event_by_slug_service,
     create_order as create_order_service,
 )
+from crud import get_all_events, get_active_events, get_past_events
 from firebase_auth import login_user, register_user, send_verification_email
 from exceptions import NoUrlFoundException
 
@@ -55,6 +57,14 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.post("/add_event")
@@ -106,4 +116,70 @@ async def create_order(order: OrderCreate):
         payment_method=order.payment_method,
         people_count=order.people_count,
     )
+
+
+@app.get("/api/events")
+async def get_events():
+    events = await get_all_events()
+    return [
+        {
+            "event_id": event.event_id,
+            "slug": event.slug,
+            "name": event.name,
+            "place": event.place,
+            "city": event.city,
+            "event_time": event.event_time.isoformat(),
+            "price": float(event.price),
+            "description": event.description,
+            "purchased_count": event.purchased_count,
+            "seats_total": event.seats_total,
+            "account_id": event.account_id,
+            "long_url": event.long_url,
+        }
+        for event in events
+    ]
+
+
+@app.get("/api/events/active")
+async def get_active_events_endpoint():
+    events = await get_active_events()
+    return [
+        {
+            "event_id": event.event_id,
+            "slug": event.slug,
+            "name": event.name,
+            "place": event.place,
+            "city": event.city,
+            "event_time": event.event_time.isoformat(),
+            "price": float(event.price),
+            "description": event.description,
+            "purchased_count": event.purchased_count,
+            "seats_total": event.seats_total,
+            "account_id": event.account_id,
+            "long_url": event.long_url,
+        }
+        for event in events
+    ]
+
+
+@app.get("/api/events/past")
+async def get_past_events_endpoint():
+    events = await get_past_events()
+    return [
+        {
+            "event_id": event.event_id,
+            "slug": event.slug,
+            "name": event.name,
+            "place": event.place,
+            "city": event.city,
+            "event_time": event.event_time.isoformat(),
+            "price": float(event.price),
+            "description": event.description,
+            "purchased_count": event.purchased_count,
+            "seats_total": event.seats_total,
+            "account_id": event.account_id,
+            "long_url": event.long_url,
+        }
+        for event in events
+    ]
 

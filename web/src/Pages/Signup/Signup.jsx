@@ -19,6 +19,13 @@ function Signup({ onNavigate }) {
   const [customAvatarPreview, setCustomAvatarPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({
+    name: '',
+    username: '',
+    email: '',
+    password: '',
+    repeatPassword: ''
+  });
   const fileInputRef = useRef(null);
 
   const handleBack = () => {
@@ -54,40 +61,166 @@ function Signup({ onNavigate }) {
     }
   }, [step]);
 
+  const validateName = (nameValue) => {
+    if (!nameValue.trim()) {
+      return 'Имя обязательно для заполнения';
+    }
+    if (nameValue.trim().length < 2) {
+      return 'Имя должно содержать минимум 2 символа';
+    }
+    if (nameValue.trim().length > 50) {
+      return 'Имя слишком длинное (максимум 50 символов)';
+    }
+    if (!/^[a-zA-Zа-яА-ЯёЁ\s-]+$/.test(nameValue.trim())) {
+      return 'Имя может содержать только буквы, пробелы и дефисы';
+    }
+    if (/^\s|\s$/.test(nameValue)) {
+      return 'Имя не может начинаться или заканчиваться пробелом';
+    }
+    if (/\s{2,}/.test(nameValue)) {
+      return 'Имя не может содержать несколько пробелов подряд';
+    }
+    return '';
+  };
+
+  const validateUsername = (usernameValue) => {
+    if (!usernameValue.trim()) {
+      return 'Логин обязателен для заполнения';
+    }
+    if (usernameValue.trim().length < 3) {
+      return 'Логин должен содержать минимум 3 символа';
+    }
+    if (usernameValue.trim().length > 30) {
+      return 'Логин слишком длинный (максимум 30 символов)';
+    }
+    if (!/^[a-zA-Z0-9_]+$/.test(usernameValue.trim())) {
+      return 'Логин может содержать только буквы, цифры и подчеркивание';
+    }
+    if (/^\d/.test(usernameValue.trim())) {
+      return 'Логин не может начинаться с цифры';
+    }
+    if (/^_|_$/.test(usernameValue.trim())) {
+      return 'Логин не может начинаться или заканчиваться подчеркиванием';
+    }
+    return '';
+  };
+
+  const validateEmail = (emailValue) => {
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailValue.trim()) {
+      return 'Email обязателен для заполнения';
+    }
+    if (emailValue.length < 5) {
+      return 'Email слишком короткий';
+    }
+    if (emailValue.length > 254) {
+      return 'Email слишком длинный';
+    }
+    if (!emailRegex.test(emailValue)) {
+      return 'Введите корректный email адрес';
+    }
+    if (emailValue.includes('..')) {
+      return 'Email не может содержать две точки подряд';
+    }
+    if (emailValue.startsWith('.') || emailValue.endsWith('.')) {
+      return 'Email не может начинаться или заканчиваться точкой';
+    }
+    if (emailValue.includes('@.') || emailValue.includes('.@')) {
+      return 'Некорректный формат email';
+    }
+    return '';
+  };
+
+  const validatePassword = (passwordValue) => {
+    if (!passwordValue) {
+      return 'Пароль обязателен для заполнения';
+    }
+    if (passwordValue.length < 8) {
+      return 'Пароль должен содержать минимум 8 символов';
+    }
+    if (passwordValue.length > 128) {
+      return 'Пароль слишком длинный (максимум 128 символов)';
+    }
+    if (!/[A-Z]/.test(passwordValue) && !/[a-z]/.test(passwordValue)) {
+      return 'Пароль должен содержать буквы';
+    }
+    if (!/[0-9]/.test(passwordValue)) {
+      return 'Пароль должен содержать хотя бы одну цифру';
+    }
+    if (/^\s|\s$/.test(passwordValue)) {
+      return 'Пароль не может начинаться или заканчиваться пробелом';
+    }
+    if (formData.repeatPassword && passwordValue !== formData.repeatPassword) {
+      return 'Пароли не совпадают';
+    }
+    return '';
+  };
+
+  const validateRepeatPassword = (repeatPasswordValue, passwordValue) => {
+    if (!repeatPasswordValue) {
+      return 'Повторите пароль';
+    }
+    if (repeatPasswordValue !== passwordValue) {
+      return 'Пароли не совпадают';
+    }
+    return '';
+  };
+
   const handleInputChange = (field, value) => {
     setFormData({ ...formData, [field]: value });
-    setError(''); // Очищаем ошибку при изменении поля
+    setError('');
+    
+    if (fieldErrors[field]) {
+      let error = '';
+      switch (field) {
+        case 'name':
+          error = validateName(value);
+          break;
+        case 'username':
+          error = validateUsername(value);
+          break;
+        case 'email':
+          error = validateEmail(value);
+          break;
+        case 'password':
+          error = validatePassword(value);
+          if (formData.repeatPassword) {
+            setFieldErrors({
+              ...fieldErrors,
+              [field]: error,
+              repeatPassword: validateRepeatPassword(formData.repeatPassword, value)
+            });
+            return;
+          }
+          break;
+        case 'repeatPassword':
+          error = validateRepeatPassword(value, formData.password);
+          break;
+      }
+      setFieldErrors({ ...fieldErrors, [field]: error });
+    }
   };
 
   const validateStep1 = () => {
-    if (!formData.name.trim()) {
-      setError('Введите имя');
+    const nameError = validateName(formData.name);
+    const usernameError = validateUsername(formData.username);
+    const emailError = validateEmail(formData.email);
+    const passwordError = validatePassword(formData.password);
+    const repeatPasswordError = validateRepeatPassword(formData.repeatPassword, formData.password);
+
+    setFieldErrors({
+      name: nameError,
+      username: usernameError,
+      email: emailError,
+      password: passwordError,
+      repeatPassword: repeatPasswordError
+    });
+
+    if (nameError || usernameError || emailError || passwordError || repeatPasswordError) {
+      setError('Исправьте ошибки в форме');
       return false;
     }
-    if (!formData.email.trim()) {
-      setError('Введите email');
-      return false;
-    }
-    if (!formData.email.includes('@')) {
-      setError('Введите корректный email');
-      return false;
-    }
-    if (!formData.password) {
-      setError('Введите пароль');
-      return false;
-    }
-    if (formData.password.length < 6) {
-      setError('Пароль должен содержать минимум 6 символов');
-      return false;
-    }
-    if (formData.password !== formData.repeatPassword) {
-      setError('Пароли не совпадают');
-      return false;
-    }
-    if (!formData.username.trim()) {
-      setError('Введите логин');
-      return false;
-    }
+
     return true;
   };
 
@@ -223,53 +356,94 @@ function Signup({ onNavigate }) {
               <div className="tab-indicator" ref={indicatorRef}></div>
 
               <div className="form-inputs">
-                <div className="input-field">
+                <div className={`input-field ${fieldErrors.name ? 'error' : ''}`}>
                   <input 
                     type="text" 
                     placeholder="Имя"
                     value={formData.name}
                     onChange={(e) => handleInputChange('name', e.target.value)}
+                    onBlur={() => {
+                      setFieldErrors({ ...fieldErrors, name: validateName(formData.name) });
+                    }}
                   />
+                  {fieldErrors.name && (
+                    <div className="field-error">{fieldErrors.name}</div>
+                  )}
                 </div>
 
-                <div className="input-field">
+                <div className={`input-field ${fieldErrors.username ? 'error' : ''}`}>
                   <input 
                     type="text" 
                     placeholder="Логин"
                     value={formData.username}
                     onChange={(e) => handleInputChange('username', e.target.value)}
+                    onBlur={() => {
+                      setFieldErrors({ ...fieldErrors, username: validateUsername(formData.username) });
+                    }}
                   />
                   <svg className="input-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path fillRule="evenodd" clipRule="evenodd" d="M4.99924 4C4.99924 2.34315 6.34239 1 7.99924 1C9.6561 1 10.9992 2.34315 10.9992 4C10.9992 5.65685 9.6561 7 7.99924 7C6.34239 7 4.99924 5.65685 4.99924 4Z" fill="var(--color-text-primary)"/>
                     <path fillRule="evenodd" clipRule="evenodd" d="M2.50007 13.4036C2.55163 10.4104 4.9939 8 7.99924 8C11.0047 8 13.447 10.4105 13.4984 13.4038C13.5018 13.6023 13.3875 13.784 13.207 13.8668C11.6211 14.5945 9.85693 15 7.99946 15C6.14182 15 4.37753 14.5945 2.79146 13.8666C2.61101 13.7838 2.49666 13.6021 2.50007 13.4036Z" fill="var(--color-text-primary)"/>
                   </svg>
+                  {fieldErrors.username && (
+                    <div className="field-error">{fieldErrors.username}</div>
+                  )}
                 </div>
 
-                <div className="input-field">
+                <div className={`input-field ${fieldErrors.email ? 'error' : ''}`}>
                   <input 
                     type="email" 
                     placeholder="Email"
                     value={formData.email}
                     onChange={(e) => handleInputChange('email', e.target.value)}
+                    onBlur={() => {
+                      setFieldErrors({ ...fieldErrors, email: validateEmail(formData.email) });
+                    }}
                   />
+                  {fieldErrors.email && (
+                    <div className="field-error">{fieldErrors.email}</div>
+                  )}
                 </div>
 
-                <div className="input-field">
+                <div className={`input-field ${fieldErrors.password ? 'error' : ''}`}>
                   <input 
                     type="password" 
                     placeholder="Пароль"
                     value={formData.password}
                     onChange={(e) => handleInputChange('password', e.target.value)}
+                    onBlur={() => {
+                      const passwordError = validatePassword(formData.password);
+                      const repeatPasswordError = formData.repeatPassword 
+                        ? validateRepeatPassword(formData.repeatPassword, formData.password)
+                        : fieldErrors.repeatPassword;
+                      setFieldErrors({ 
+                        ...fieldErrors, 
+                        password: passwordError,
+                        repeatPassword: repeatPasswordError
+                      });
+                    }}
                   />
+                  {fieldErrors.password && (
+                    <div className="field-error">{fieldErrors.password}</div>
+                  )}
                 </div>
 
-                <div className="input-field">
+                <div className={`input-field ${fieldErrors.repeatPassword ? 'error' : ''}`}>
                   <input 
                     type="password" 
                     placeholder="Повторите пароль"
                     value={formData.repeatPassword}
                     onChange={(e) => handleInputChange('repeatPassword', e.target.value)}
+                    onBlur={() => {
+                      setFieldErrors({ 
+                        ...fieldErrors, 
+                        repeatPassword: validateRepeatPassword(formData.repeatPassword, formData.password)
+                      });
+                    }}
                   />
+                  {fieldErrors.repeatPassword && (
+                    <div className="field-error">{fieldErrors.repeatPassword}</div>
+                  )}
                 </div>
               </div>
 

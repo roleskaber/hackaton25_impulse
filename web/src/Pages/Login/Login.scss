@@ -183,16 +183,23 @@
 
 .input-field {
   display: flex;
+  flex-direction: column;
   padding: 18px 15px;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
   border-radius: 12px;
   border: 1px solid var(--color-text-primary);
   background: transparent;
   position: relative;
 
+  &.error {
+    border-color: #ff4d4d;
+    animation: shake 0.3s ease-in-out;
+  }
+
   input {
     flex: 1;
+    width: 100%;
     background: transparent;
     border: none;
     outline: none;
@@ -214,11 +221,28 @@
     width: 16px;
     height: 16px;
     flex-shrink: 0;
+    position: absolute;
+    right: 15px;
+    top: 18px;
 
     &.clickable {
       cursor: pointer;
     }
   }
+
+  .field-error {
+    color: #ff4d4d;
+    font-size: 12px;
+    font-family: Lato, -apple-system, Roboto, Helvetica, sans-serif;
+    margin-top: 4px;
+    line-height: 1.4;
+  }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
 }
 
 .forgot-password {

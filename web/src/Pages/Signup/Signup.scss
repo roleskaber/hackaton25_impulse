@@ -198,15 +198,21 @@
 
   .input-field {
     display: flex;
+    flex-direction: column;
     width: 272px;
-    height: 58px;
+    min-height: 58px;
     padding: 18px 15px;
-    align-items: center;
+    align-items: flex-start;
     gap: 10px;
     border-radius: 12px;
     border: 1px solid var(--color-text-primary);
     background: transparent;
     position: relative;
+
+    &.error {
+      border-color: #ff4d4d;
+      animation: shake 0.3s ease-in-out;
+    }
 
     @media (max-width: 768px) {
       width: 100%;
@@ -214,6 +220,7 @@
 
     input {
       flex: 1;
+      width: 100%;
       background: transparent;
       border: none;
       outline: none;
@@ -237,7 +244,23 @@
       flex-shrink: 0;
       position: absolute;
       right: 15px;
+      top: 18px;
     }
+
+    .field-error {
+      color: #ff4d4d;
+      font-size: 12px;
+      font-family: Lato, -apple-system, Roboto, Helvetica, sans-serif;
+      margin-top: 4px;
+      line-height: 1.4;
+      width: 100%;
+    }
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
   }
 
   .continue-button {

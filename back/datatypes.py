@@ -54,5 +54,5 @@ class PasswordResetConfirm(BaseModel):
 
 
 class EventsBetweenRequest(BaseModel):
-    start: datetime = Field(..., description="Начальная дата (ISO)")
-    end: datetime = Field(..., description="Конечная дата (ISO)")
+    start: datetime | None = Field(None, description="Начальная дата (ISO)")
+    end: datetime | None = Field(None, description="Конечная дата (ISO)")

@@ -1,5 +1,4 @@
-from datetime import datetime
-
+from datetime import datetime, timezone
 from shortener import generate_slug
 from crud import (
     add_slug_to_db,
@@ -98,6 +97,13 @@ async def create_order(
 
 
 async def list_events_between_dates(start: datetime, end: datetime, limit: int = 100):
+    if not start:
+        start = start or datetime.min.replace(tzinfo=timezone.utc)
+
+
+    if not end:
+        end = end or datetime.max.replace(tzinfo=timezone.utc)
+
     events = await get_events_between_dates(start=start, end=end, limit=limit)
     return [
         {

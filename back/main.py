@@ -137,7 +137,7 @@ async def update_user(user_id: int, payload: UserUpdate):
 async def expect(city: str):
     return await expect_ai(city)
 
-@app.get("/{event_id}")
+@app.get("/events/get/{event_id}")
 async def get_event_by_slug(event_id: int):
     try:
         event = await get_event_details_by_id(event_id=event_id)

@@ -23,11 +23,11 @@ async def expect_ai(city: str):
     else:
         events_text = "Нет известных событий для этого города."
 
-    if len(events_text) == 1 and not isinstance(events, str):
-        return events_text
+    if len(events) == 1 and not isinstance(events, str):
+        return events
 
     if not os.getenv("OPENAI_API_KEY") and isinstance(events, str):
-        return events_text[0]
+        return events[0]
 
     if not os.getenv("OPENAI_API_KEY") or isinstance(events, str):
         return HTTPException(status_code=400, detail="OpenAI API key is required")

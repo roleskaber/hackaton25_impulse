@@ -7,6 +7,7 @@ from crud import (
     get_all_users_from_db,
     get_event_by_id,
     get_url_from_db,
+    get_event_from_db,
     update_user_in_db,
 )
 from exceptions import NoUrlFoundException, ShortenerBaseException, SlugAlreadyExists
@@ -92,6 +93,13 @@ async def create_order(
 
 async def get_all_users():
     return await get_all_users_from_db()
+
+
+async def get_event_details_by_slug(slug: str) -> dict:
+    event = await get_event_from_db(slug)
+    if not event:
+        raise NoUrlFoundException
+    return event
 
 
 async def update_user(

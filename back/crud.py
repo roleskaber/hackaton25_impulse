@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from database.db import new_session
 from database.models import Order, ShortURL, User
@@ -20,7 +20,13 @@ async def add_slug_to_db(
     seats_total: int,
     account_id: int,
 ) -> int:
+    
     async with new_session() as session:
+        # Normalize event_time: if caller passed a timezone-aware datetime,
+        # convert it to UTC naive to match existing DB column (TIMESTAMP WITHOUT TIME ZONE).
+        if event_time is not None and getattr(event_time, "tzinfo", None) is not None:
+            event_time = event_time.astimezone(timezone.utc).replace(tzinfo=None)
+
         new_slug = ShortURL(
             slug=slug,
             long_url=long_url,
@@ -49,7 +55,32 @@ async def get_url_from_db(slug: str) -> str | None:
         query = select(ShortURL).filter_by(slug=slug)
         result = await session.execute(query)
         res: ShortURL | None = result.scalar_one_or_none()
-    return res.long_url if res.long_url else None
+    if not res:
+        return None
+    return res.long_url
+
+
+async def get_event_from_db(slug: str) -> dict | None:
+    async with new_session() as session:
+        query = select(ShortURL).filter_by(slug=slug)
+        result = await session.execute(query)
+        res: ShortURL | None = result.scalar_one_or_none()
+        if not res:
+            return None
+        return {
+            "event_id": res.event_id,
+            "slug": res.slug,
+            "long_url": res.long_url,
+            "name": res.name,
+            "place": res.place,
+            "city": res.city,
+            "event_time": res.event_time,
+            "price": float(res.price),
+            "description": res.description,
+            "purchased_count": res.purchased_count,
+            "seats_total": res.seats_total,
+            "account_id": res.account_id,
+        }
 
 
 async def get_event_by_id(event_id: int) -> ShortURL | None:

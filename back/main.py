@@ -4,15 +4,16 @@ from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import Literal
-from database.db import engine
-from database.models import Base
+from database.db import engine, new_session
+from database.models import Base, User
+from sqlalchemy import select
 from contextlib import asynccontextmanager
 from service import (
     add_event as add_event_service,
     get_event_by_slug as get_event_by_slug_service,
     create_order as create_order_service,
-    get_all_users as get_all_users_service,
     update_user as update_user_service,
+    get_event_details_by_slug,
 )
 from firebase_auth import (
     login_user,
@@ -143,11 +144,16 @@ async def password_reset_confirm(request: PasswordResetConfirm):
 
 @app.get("/{slug}")
 async def get_event_by_slug(slug: str):
+    """Return event details for `slug` instead of redirecting to `long_url`.
+
+    This removes the previous redirect behavior that relied on the stored
+    `long_url` value.
+    """
     try:
-        long_url = await get_event_by_slug_service(slug=slug)
+        event = await get_event_details_by_slug(slug=slug)
     except NoUrlFoundException:
-        return HTTPException(status.HTTP_404_NOT_FOUND, detail="...")
-    return RedirectResponse(url=long_url, status_code=status.HTTP_302_FOUND)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
+    return event
 
 
 @app.post("/order")
@@ -162,7 +168,20 @@ async def create_order(order: OrderCreate):
 
 @app.get("/users", dependencies=[Depends(require_api_key)])
 async def get_users():
-    return await get_all_users_service()
+    async with new_session() as session:
+        result = await session.execute(select(User))
+        users = result.scalars().all()
+        return [
+            {
+                "id": u.id,
+                "email": u.email,
+                "display_name": u.display_name,
+                "phone": u.phone,
+                "role": u.role,
+                "created_at": u.created_at,
+            }
+            for u in users
+        ]
 
 
 @app.patch("/users/{user_id}", dependencies=[Depends(require_api_key)])

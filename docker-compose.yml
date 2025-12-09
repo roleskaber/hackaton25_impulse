@@ -15,5 +15,20 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  backend:
+    build: ./back
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./entrypoint.sh:/app/entrypoint.sh
+    entrypoint: [ "/bin/sh", "/app/entrypoint.sh" ]
+    environment:
+      GOOGLE_API_KEY: AAA
+
+
+
 volumes:
   postgres_data:

@@ -196,6 +196,8 @@ function Signup({ onNavigate }) {
         case 'repeatPassword':
           error = validateRepeatPassword(value, formData.password);
           break;
+        default:
+          break;
       }
       setFieldErrors({ ...fieldErrors, [field]: error });
     }

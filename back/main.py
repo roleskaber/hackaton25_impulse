@@ -14,6 +14,7 @@ from service import (
     create_order as create_order_service,
     update_user as update_user_service,
     get_event_details_by_slug,
+    list_events_between_dates
 )
 from firebase_auth import (
     login_user,
@@ -25,7 +26,9 @@ from firebase_auth import (
 from exceptions import NoUrlFoundException
 import os
 from fastapi import Depends, Header
+from dotenv import load_dotenv
 
+load_dotenv('.env')
 
 class EventCreate(BaseModel):
     long_url: str = Field(..., description="Полная ссылка на событие")
@@ -35,6 +38,8 @@ class EventCreate(BaseModel):
     event_time: datetime = Field(..., description="Дата и время события")
     price: float = Field(..., description="Цена билета")
     description: str = Field(..., description="Описание события")
+    event_type: str | None = Field(None, description="Тип события")
+    message_link: str | None = Field(None, description="Ссылка на сообщение")
     purchased_count: int = Field(..., ge=0, description="Количество купивших билет")
     seats_total: int = Field(..., gt=0, description="Количество мест")
     account_id: int = Field(..., description="ID аккаунта организатора")
@@ -115,6 +120,8 @@ async def create_event(event: EventCreate):
         event_time=event.event_time,
         price=event.price,
         description=event.description,
+        event_type=event.event_type,
+        message_link=event.message_link,
         purchased_count=event.purchased_count,
         seats_total=event.seats_total,
         account_id=event.account_id,
@@ -152,18 +159,7 @@ async def events_between_dates(payload: EventsBetweenRequest, limit: int = 100):
     return await list_events_between_dates(start=payload.start, end=payload.end, limit=limit)
 
 
-@app.get("/{slug}")
-async def get_event_by_slug(slug: str):
-    """Return event details for `slug` instead of redirecting to `long_url`.
 
-    This removes the previous redirect behavior that relied on the stored
-    `long_url` value.
-    """
-    try:
-        event = await get_event_details_by_slug(slug=slug)
-    except NoUrlFoundException:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
-    return event
 
 
 @app.post("/order")
@@ -203,4 +199,13 @@ async def update_user(user_id: int, payload: UserUpdate):
         role=payload.role,
     )
     return updated
+
+
+@app.get("/{slug}")
+async def get_event_by_slug(slug: str):
+    try:
+        event = await get_event_details_by_slug(slug=slug)
+    except NoUrlFoundException:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
+    return event
 

@@ -48,6 +48,15 @@ async def register_user(email: str, password: str) -> Dict[str, Any]:
         },
     )
     await send_verification_email(data["idToken"])
+    # Ensure a local DB user exists for this email.
+    try:
+        from crud import create_user_in_db
+
+        await create_user_in_db(email=email)
+    except Exception:
+        # Don't fail registration if DB write fails; log in production.
+        pass
+
     return data
 
 

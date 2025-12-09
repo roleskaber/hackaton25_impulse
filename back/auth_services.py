@@ -6,13 +6,15 @@ import httpx
 from fastapi import HTTPException, status
 from dotenv import load_dotenv
 
-# Load .env from the same directory as this file if present, otherwise fall back
-# to the default loader (which checks the working directory and environment).
-env_path = Path(__file__).resolve().parent / ".env"
-if env_path.exists():
-    load_dotenv(env_path)
-else:
-    load_dotenv()
+from fastapi import Header
+
+load_dotenv('.env')
+
+def require_api_key(x_api_key: str = Header(..., alias="X-API-KEY")):
+    expected = os.getenv("ADMIN_API_KEY")
+    if not expected or x_api_key != expected:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Invalid API key")
+    return True
 
 FIREBASE_API_KEY = os.getenv("FIREBASE_API_KEY")
 FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID")

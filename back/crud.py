@@ -24,8 +24,6 @@ async def add_slug_to_db(
     message_link: str | None = None,
 ) -> int:
     async with new_session() as session:
-        # Normalize event_time: if caller passed a timezone-aware datetime,
-        # convert it to UTC naive to match existing DB column (TIMESTAMP WITHOUT TIME ZONE).
         if event_time is not None and getattr(event_time, "tzinfo", None) is not None:
             event_time = event_time.astimezone(timezone.utc).replace(tzinfo=None)
 

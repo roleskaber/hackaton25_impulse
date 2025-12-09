@@ -19,11 +19,10 @@ async def add_slug_to_db(
     description: str,
     purchased_count: int,
     seats_total: int,
-)    account_id: int,
+    account_id: int,
     event_type: str | None = None,
     message_link: str | None = None,
 ) -> int:
-    
     async with new_session() as session:
         # Normalize event_time: if caller passed a timezone-aware datetime,
         # convert it to UTC naive to match existing DB column (TIMESTAMP WITHOUT TIME ZONE).

@@ -24,7 +24,7 @@ async def add_event(
     description: str,
     purchased_count: int,
     seats_total: int,
-)    account_id: int,
+    account_id: int,
     event_type: str | None = None,
     message_link: str | None = None,
 ) -> dict:

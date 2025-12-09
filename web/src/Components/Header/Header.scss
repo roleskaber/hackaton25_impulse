@@ -64,8 +64,8 @@
 }
 
 .logo {
-  width: 120px;
-  height: 80px;
+  width: 210px;
+  height: 120px;
   flex-shrink: 0;
   transition: transform 0.35s ease;
 
@@ -74,13 +74,13 @@
   }
 
   @media (max-width: 991px) {
-    width: 96px;
-    height: 64px;
+    width: 174px;
+    height: 96px;
   }
 
   @media (max-width: 640px) {
-    width: 72px;
-    height: 48px;
+    width: 138px;
+    height: 72px;
   }
 }
 

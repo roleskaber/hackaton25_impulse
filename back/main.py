@@ -29,6 +29,7 @@ import os
 from fastapi import Depends, Header
 from dotenv import load_dotenv
 import json
+import logging
 
 load_dotenv('.env')
 
@@ -219,6 +220,10 @@ async def expect_ai(city: str):
     else:
         events_text = "Нет известных событий для этого города."
 
+    # Ensure OPENAI API key is present
+    if not os.getenv("OPENAI_API_KEY"):
+        raise HTTPException(status_code=500, detail="OPENAI_API_KEY is not set in environment")
+
     client = openai.OpenAI()
     instruction = (
         f"Верни один json события, которое ты считаешь более подходящим по актуальности для текущего сезона в городе {city}. "
@@ -252,6 +257,7 @@ async def expect_ai(city: str):
     except HTTPException:
         raise
     except Exception as e:
+        logging.exception("AI request failed")
         raise HTTPException(status_code=500, detail=f"AI request failed: {e}")
 
 

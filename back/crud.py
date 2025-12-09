@@ -1,8 +1,8 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from database.db import new_session
-from database.models import Order, ShortURL
-from sqlalchemy import select
+from database.models import Order, ShortURL, User
+from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from exceptions import SlugAlreadyExists
 
@@ -20,7 +20,13 @@ async def add_slug_to_db(
     seats_total: int,
     account_id: int,
 ) -> int:
+    
     async with new_session() as session:
+        # Normalize event_time: if caller passed a timezone-aware datetime,
+        # convert it to UTC naive to match existing DB column (TIMESTAMP WITHOUT TIME ZONE).
+        if event_time is not None and getattr(event_time, "tzinfo", None) is not None:
+            event_time = event_time.astimezone(timezone.utc).replace(tzinfo=None)
+
         new_slug = ShortURL(
             slug=slug,
             long_url=long_url,
@@ -55,11 +61,6 @@ async def get_url_from_db(slug: str) -> str | None:
 
 
 async def get_event_from_db(slug: str) -> dict | None:
-    """Return all stored fields for the event identified by `slug` as a dict.
-
-    This extracts values while the session is open so callers can safely
-    return or serialize the result.
-    """
     async with new_session() as session:
         query = select(ShortURL).filter_by(slug=slug)
         result = await session.execute(query)
@@ -67,6 +68,7 @@ async def get_event_from_db(slug: str) -> dict | None:
         if not res:
             return None
         return {
+            "event_id": res.event_id,
             "slug": res.slug,
             "long_url": res.long_url,
             "name": res.name,
@@ -79,6 +81,22 @@ async def get_event_from_db(slug: str) -> dict | None:
             "seats_total": res.seats_total,
             "account_id": res.account_id,
         }
+
+
+async def get_events_between_dates(
+    start: datetime,
+    end: datetime,
+    limit: int = 100,
+) -> list[ShortURL]:
+    async with new_session() as session:
+        query = (
+            select(ShortURL)
+            .where(ShortURL.event_time.between(start, end))
+            .order_by(ShortURL.event_time.asc())
+            .limit(limit)
+        )
+        result = await session.execute(query)
+        return list(result.scalars().all())
 
 
 async def get_event_by_id(event_id: int) -> ShortURL | None:
@@ -105,4 +123,33 @@ async def create_order_in_db(
         await session.commit()
         await session.refresh(order)
         return order.id
+
+
+async def get_all_users_from_db() -> list[User]:
+    async with new_session() as session:
+        result = await session.execute(select(User))
+        return list(result.scalars().all())
+
+
+async def update_user_in_db(
+    user_id: int,
+    display_name: str | None = None,
+    phone: str | None = None,
+    role: str | None = None,
+) -> User | None:
+    async with new_session() as session:
+        query = select(User).filter_by(id=user_id)
+        result = await session.execute(query)
+        user = result.scalar_one_or_none()
+        if not user:
+            return None
+        if display_name is not None:
+            user.display_name = display_name
+        if phone is not None:
+            user.phone = phone
+        if role is not None:
+            user.role = role
+        await session.commit()
+        await session.refresh(user)
+        return user
     

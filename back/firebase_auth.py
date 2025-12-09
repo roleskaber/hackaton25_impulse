@@ -71,3 +71,23 @@ async def send_verification_email(id_token: str) -> Dict[str, Any]:
         },
     )
 
+
+async def send_password_reset_email(email: str) -> Dict[str, Any]:
+    return await _request(
+        "accounts:sendOobCode",
+        {
+            "requestType": "PASSWORD_RESET",
+            "email": email,
+        },
+    )
+
+
+async def confirm_password_reset(oob_code: str, new_password: str) -> Dict[str, Any]:
+    return await _request(
+        "accounts:resetPassword",
+        {
+            "oobCode": oob_code,
+            "newPassword": new_password,
+        },
+    )
+

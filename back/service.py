@@ -1,7 +1,16 @@
 from datetime import datetime
 
 from shortener import generate_slug
-from crud import add_slug_to_db, create_order_in_db, get_event_by_id, get_url_from_db
+from crud import (
+    add_slug_to_db,
+    create_order_in_db,
+    get_all_users_from_db,
+    get_event_by_id,
+    get_url_from_db,
+    get_event_from_db,
+    update_user_in_db,
+    get_events_between_dates,
+)
 from exceptions import NoUrlFoundException, ShortenerBaseException, SlugAlreadyExists
 
 
@@ -80,5 +89,61 @@ async def create_order(
         "qrcode": qrcode,
         "payment_method": payment_method,
         "people_count": people_count,
+    }
+
+
+async def list_events_between_dates(start: datetime, end: datetime, limit: int = 100):
+    events = await get_events_between_dates(start=start, end=end, limit=limit)
+    return [
+        {
+            "event_id": event.event_id,
+            "slug": event.slug,
+            "long_url": event.long_url,
+            "name": event.name,
+            "place": event.place,
+            "city": event.city,
+            "event_time": event.event_time,
+            "price": float(event.price),
+            "description": event.description,
+            "purchased_count": event.purchased_count,
+            "seats_total": event.seats_total,
+            "account_id": event.account_id,
+        }
+        for event in events
+    ]
+
+
+async def get_all_users():
+    return await get_all_users_from_db()
+
+
+async def get_event_details_by_slug(slug: str) -> dict:
+    event = await get_event_from_db(slug)
+    if not event:
+        raise NoUrlFoundException
+    return event
+
+
+async def update_user(
+    user_id: int,
+    display_name: str | None = None,
+    phone: str | None = None,
+    role: str | None = None,
+):
+    user = await update_user_in_db(
+        user_id=user_id,
+        display_name=display_name,
+        phone=phone,
+        role=role,
+    )
+    if not user:
+        raise NoUrlFoundException  # reuse for 404
+    return {
+        "id": user.id,
+        "email": user.email,
+        "display_name": user.display_name,
+        "phone": user.phone,
+        "role": user.role,
+        "created_at": user.created_at,
     }
     

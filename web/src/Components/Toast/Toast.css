@@ -1,0 +1,125 @@
+.toast-container {
+  position: fixed;
+  top: 100px;
+  right: 20px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  pointer-events: none;
+  max-width: 400px;
+  width: 100%;
+
+  @media (max-width: 768px) {
+    top: 80px;
+    right: 15px;
+    left: 15px;
+    max-width: none;
+  }
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-radius: 12px;
+  backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  pointer-events: auto;
+  cursor: pointer;
+  animation: slideInRight 0.3s ease-out;
+  transition: all 0.3s ease;
+  min-width: 280px;
+
+  &:hover {
+    transform: translateX(-4px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.toast-success {
+  background: linear-gradient(135deg, rgba(52, 211, 153, 0.15) 0%, rgba(52, 211, 153, 0.25) 100%);
+  border-color: rgba(52, 211, 153, 0.4);
+  color: #34d399;
+}
+
+.toast-error {
+  background: linear-gradient(135deg, rgba(248, 113, 113, 0.15) 0%, rgba(248, 113, 113, 0.25) 100%);
+  border-color: rgba(248, 113, 113, 0.4);
+  color: #f87171;
+}
+
+.toast-info {
+  background: linear-gradient(135deg, rgba(34, 142, 229, 0.15) 0%, rgba(34, 142, 229, 0.25) 100%);
+  border-color: rgba(34, 142, 229, 0.4);
+  color: #228EE5;
+}
+
+.toast-warning {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(251, 191, 36, 0.25) 100%);
+  border-color: rgba(251, 191, 36, 0.4);
+  color: #fbbf24;
+}
+
+.toast-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+}
+
+.toast-message {
+  flex: 1;
+  font-family: Lato, -apple-system, Roboto, Helvetica, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: currentColor;
+}
+
+.toast-close {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: currentColor;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+  padding: 0;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .toast {
+    padding: 14px 16px;
+    min-width: auto;
+  }
+
+  .toast-message {
+    font-size: 13px;
+  }
+}
+

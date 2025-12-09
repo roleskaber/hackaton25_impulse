@@ -132,18 +132,6 @@ const categories = [
         </defs>
       </svg>
     )
-  },
-  {
-    name: 'Бесплатное',
-    icon: (
-      <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M14.1666 13.95L16.5 12.6667" stroke="#F15A24" strokeLinecap="round" strokeLinejoin="round"/>
-        <path d="M16.5 12.6667V22" stroke="#F15A24" strokeLinecap="round" strokeLinejoin="round"/>
-        <path d="M5.39923 5.2392C4.6925 5.2392 4.11963 5.81206 4.11963 6.5188V27.7205C4.11963 28.4271 4.6925 29 5.39916 29H26.6008C27.3075 29 27.8804 28.4272 27.8804 27.7205V6.5188C27.8804 5.81206 27.3076 5.2392 26.6008 5.2392H5.39923Z" stroke="#F15A24" strokeLinecap="round" strokeLinejoin="round"/>
-        <path d="M8.54443 6.83867V3" stroke="#F15A24" strokeLinecap="round" strokeLinejoin="round"/>
-        <path d="M23.4556 6.83867V3" stroke="#F15A24" strokeLinecap="round" strokeLinejoin="round"/>
-      </svg>
-    )
   }
 ];
 

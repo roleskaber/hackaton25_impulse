@@ -72,7 +72,6 @@ function App() {
             <Home onNavigate={handleNavigate} />
             <div className="gradient-section">
               <FAQ />
-              <Footer />
             </div>
           </>
         );
@@ -83,6 +82,7 @@ function App() {
     <>
       <Header onNavigate={handleNavigate} currentPage={currentPage} />
       {renderPage()}
+      <Footer />
       <ToastContainer />
     </>
   );
@@ -90,8 +90,4 @@ function App() {
 
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+root.render(<App />);

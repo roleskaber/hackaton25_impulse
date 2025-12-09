@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:8000';
+import { getApiUrl } from '../config/api';
 
 let currentUser = null;
 let authListeners = [];
@@ -24,10 +24,11 @@ const notifyListeners = (user) => {
 
 export const loginUser = async (email, password) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+    const response = await fetch(getApiUrl('/auth/login'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
       },
       body: JSON.stringify({ email, password }),
     });
@@ -53,10 +54,11 @@ export const loginUser = async (email, password) => {
 
 export const registerUser = async (email, password, userData = {}) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/auth/register`, {
+    const response = await fetch(getApiUrl('/auth/register'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
       },
       body: JSON.stringify({ email, password }),
     });

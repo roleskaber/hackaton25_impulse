@@ -6,6 +6,10 @@
   background: #FFFFFF;
   position: relative;
   padding-top: 0;
+  
+  > :first-child {
+    margin-top: 80px;
+  }
 }
 
 .hero-carousel-section {
@@ -189,6 +193,8 @@
   justify-content: center;
   background: linear-gradient(135deg, rgba(34, 142, 229, 0.1) 0%, rgba(236, 91, 170, 0.1) 100%);
   padding: 40px;
+  margin-top: 80px;
+  margin-bottom: 0;
 
   h2 {
     color: #1a1a1a;
@@ -223,9 +229,10 @@
 
 .section-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
   margin-bottom: 32px;
+  padding-left: 0;
 }
 
 .section-title {

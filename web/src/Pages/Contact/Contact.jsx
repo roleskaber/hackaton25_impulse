@@ -1,6 +1,5 @@
 ﻿import { useState } from 'react';
 import './Contact.scss';
-import Footer from '../../Components/Footer/Footer';
 
 function Contact({ onNavigate }) {
   const [formData, setFormData] = useState({
@@ -263,8 +262,6 @@ function Contact({ onNavigate }) {
           </div>
         </div>
       </div>
-
-      <Footer />
     </div>
   );
 }

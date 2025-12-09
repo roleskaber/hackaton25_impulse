@@ -1,6 +1,6 @@
 :root {
   --header-height: 120px;
-  --color-bg-primary: #030A1B;
+  --color-bg-primary: #00000008
   --color-text-primary: #f3f7ff;
 }
 
@@ -27,8 +27,8 @@ body {
   overflow-x: hidden;
   min-height: 100vh;
   min-height: -webkit-fill-available;
-  padding-top: var(--header-height);
-  background-color: #030A1B;
+  padding-top: 0;
+  background-color: rgba(0, 0, 0, 0.08);
 }
 
 code {

@@ -5,22 +5,23 @@
   flex-direction: column;
   align-items: center;
   gap: 255px;
-  padding: 83px 162px 85px;
+  padding: 50px 162px 50px;
   width: 100%;
   box-sizing: border-box;
+  background: linear-gradient(180deg, rgba(255, 107, 53, 0.45) 0%, rgba(255, 107, 53, 0.55) 20%, rgba(255, 107, 53, 0.70) 50%, rgba(255, 107, 53, 0.85) 80%, #FF6B35 100%);
 
   @media (max-width: 1200px) {
-    padding: 70px 100px;
+    padding: 40px 100px;
     gap: 200px;
   }
 
   @media (max-width: 991px) {
-    padding: 50px 50px;
+    padding: 35px 50px;
     gap: 150px;
   }
 
   @media (max-width: 640px) {
-    padding: 40px 20px;
+    padding: 30px 20px;
     gap: 100px;
   }
 }

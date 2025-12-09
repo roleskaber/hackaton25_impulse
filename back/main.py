@@ -13,7 +13,13 @@ from service import (
     get_all_users as get_all_users_service,
     update_user as update_user_service,
 )
-from firebase_auth import login_user, register_user, send_verification_email
+from firebase_auth import (
+    login_user,
+    register_user,
+    send_verification_email,
+    send_password_reset_email,
+    confirm_password_reset,
+)
 from exceptions import NoUrlFoundException
 import os
 from fastapi import Depends, Header
@@ -65,6 +71,15 @@ class LoginRequest(BaseModel):
 class VerifyEmailRequest(BaseModel):
     id_token: str = Field(..., description="idToken из Firebase для подтверждения почты")
 
+
+class PasswordResetRequest(BaseModel):
+    email: str = Field(..., description="Почта пользователя для сброса пароля")
+
+
+class PasswordResetConfirm(BaseModel):
+    oob_code: str = Field(..., description="Код из письма Firebase (oobCode)")
+    new_password: str = Field(..., min_length=6, description="Новый пароль")
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     async with engine.begin() as connection: 
@@ -105,6 +120,16 @@ async def login(request: LoginRequest):
 @app.post("/auth/verify-email")
 async def verify_email(request: VerifyEmailRequest):
     return await send_verification_email(id_token=request.id_token)
+
+
+@app.post("/auth/password-reset")
+async def password_reset(request: PasswordResetRequest):
+    return await send_password_reset_email(email=request.email)
+
+
+@app.post("/auth/password-reset/confirm")
+async def password_reset_confirm(request: PasswordResetConfirm):
+    return await confirm_password_reset(oob_code=request.oob_code, new_password=request.new_password)
 
 
 @app.get("/{slug}")

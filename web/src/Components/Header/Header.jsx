@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import './Header.scss';
 import { getCurrentUser, onAuthStateChange } from '../../services/authService';
 import SearchOverlay from '../SearchOverlay/SearchOverlay';
@@ -10,19 +10,51 @@ function Header({ onNavigate, currentPage = 'home' }) {
   const [isAuthenticated, setIsAuthenticated] = useState(() => !!getCurrentUser());
   const [userData, setUserData] = useState(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [selectedCity, setSelectedCity] = useState('Москва');
+  const [isCityDropdownOpen, setIsCityDropdownOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(() => {
     if (typeof window === 'undefined') {
       return false;
     }
     return window.innerWidth <= 640;
   });
+  const cityDropdownRef = useRef(null);
+  const cities = [
+    'Москва',
+    'Санкт-Петербург',
+    'Новосибирск',
+    'Екатеринбург',
+    'Казань',
+    'Нижний Новгород',
+    'Самара',
+    'Омск',
+    'Челябинск',
+    'Ростов-на-Дону',
+    'Уфа',
+    'Красноярск',
+    'Пермь',
+    'Воронеж',
+    'Волгоград'
+  ];
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
     const handleResize = () => setIsMobile(window.innerWidth <= 640);
+    const handleClickOutside = (event) => {
+      if (cityDropdownRef.current && !cityDropdownRef.current.contains(event.target)) {
+        setIsCityDropdownOpen(false);
+      }
+    };
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setIsCityDropdownOpen(false);
+      }
+    };
 
     window.addEventListener('scroll', handleScroll);
     window.addEventListener('resize', handleResize);
+    window.addEventListener('mousedown', handleClickOutside);
+    window.addEventListener('keydown', handleKeyDown);
 
     const unsubscribeAuth = onAuthStateChange((user) => {
       setIsAuthenticated(!!user);
@@ -32,6 +64,8 @@ function Header({ onNavigate, currentPage = 'home' }) {
     return () => {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('keydown', handleKeyDown);
       unsubscribeAuth?.();
     };
   }, []);
@@ -47,8 +81,6 @@ function Header({ onNavigate, currentPage = 'home' }) {
     },
     [onNavigate]
   );
-
-  const selectedCity = 'Москва';
 
   const handleLoginClick = () => {
     const user = getCurrentUser();
@@ -69,6 +101,15 @@ function Header({ onNavigate, currentPage = 'home' }) {
     navigateTo('login');
   };
 
+  const toggleCityDropdown = () => {
+    setIsCityDropdownOpen((prev) => !prev);
+  };
+
+  const handleCitySelect = (city) => {
+    setSelectedCity(city);
+    setIsCityDropdownOpen(false);
+  };
+
   return (
     <>
       <header className={`header-glass ${isScrolled ? 'scrolled' : ''}`}>
@@ -81,14 +122,37 @@ function Header({ onNavigate, currentPage = 'home' }) {
           />
         </button>
 
-        <div className="header-location">
-          <button className="location-button" type="button">
+        <div className="header-location" ref={cityDropdownRef}>
+          <button
+            className={`location-button ${isCityDropdownOpen ? 'open' : ''}`}
+            type="button"
+            onClick={toggleCityDropdown}
+            aria-expanded={isCityDropdownOpen}
+          >
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M10 10.8333C11.3807 10.8333 12.5 9.71405 12.5 8.33333C12.5 6.95262 11.3807 5.83333 10 5.83333C8.61929 5.83333 7.5 6.95262 7.5 8.33333C7.5 9.71405 8.61929 10.8333 10 10.8333Z" stroke="#EBFAFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M10 2.5C7.23858 2.5 5 4.73858 5 7.5C5 11.25 10 17.5 10 17.5C10 17.5 15 11.25 15 7.5C15 4.73858 12.7614 2.5 10 2.5Z" stroke="#EBFAFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
             <span>{selectedCity}</span>
+            <svg className="chevron-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M4 6L8 10L12 6" stroke="#EBFAFF" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
           </button>
+
+          <div className={`city-dropdown ${isCityDropdownOpen ? 'open' : ''}`}>
+            <div className="city-dropdown-list">
+              {cities.map((city) => (
+                <button
+                  key={city}
+                  type="button"
+                  className={`city-dropdown-item ${city === selectedCity ? 'active' : ''}`}
+                  onClick={() => handleCitySelect(city)}
+                >
+                  {city}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         <div className="header-search">

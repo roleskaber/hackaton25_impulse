@@ -46,15 +46,8 @@ function Login({ onNavigate }) {
 
   return (
     <div className="login-page">
+      <div className="background-image"></div>
       <div className="login-container">
-        <button className="back-button" onClick={handleBack}>
-          <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M11.8606 22.2372L3.42738 13.7954M3.42738 13.7954L11.8691 5.36219M3.42738 13.7954L23.6774 13.8057" stroke="var(--color-text-primary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
-
-        <div className="background-image"></div>
-
         <div className="login-form-wrapper">
           <h1 className="logo-title">KinoDors</h1>
 

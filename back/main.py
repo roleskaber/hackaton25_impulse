@@ -148,8 +148,8 @@ async def password_reset_confirm(request: PasswordResetConfirm):
 
 
 @app.post("/events/between")
-async def events_between_dates(payload: EventsBetweenRequest):
-    return await list_events_between_dates(start=payload.start, end=payload.end, limit=100)
+async def events_between_dates(payload: EventsBetweenRequest, limit: int = 100):
+    return await list_events_between_dates(start=payload.start, end=payload.end, limit=limit)
 
 
 @app.get("/{slug}")

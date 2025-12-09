@@ -3,8 +3,7 @@ import './Home.scss';
 import FAQ from '../../Components/FAQ/FAQ';
 import EventCard from '../../Components/EventCard/EventCard';
 import CategoryFilter from '../../Components/CategoryFilter/CategoryFilter';
-
-const API_BASE_URL = 'http://localhost:8000';
+import { useEvents } from '../../hooks/useEvents';
 
 const afishaCategories = [
   'Кино',
@@ -18,9 +17,7 @@ const afishaCategories = [
 ];
 
 function Home({ onNavigate }) {
-  const [activeEvents, setActiveEvents] = useState([]);
-  const [pastEvents, setPastEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { upcomingEvents, afishaEvents, loading } = useEvents();
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [selectedAfishaCategories, setSelectedAfishaCategories] = useState([]);
   const [carouselIndex, setCarouselIndex] = useState(0);
@@ -28,56 +25,33 @@ function Home({ onNavigate }) {
   const afishaEventsRef = useRef(null);
 
   useEffect(() => {
-    loadEvents();
-  }, []);
-
-  useEffect(() => {
-    if (activeEvents.length > 0) {
+    if (upcomingEvents.length > 0) {
       const interval = setInterval(() => {
-        setCarouselIndex((prev) => (prev + 1) % Math.min(activeEvents.length, 4));
+        setCarouselIndex((prev) => (prev + 1) % Math.min(upcomingEvents.length, 4));
       }, 5000);
       return () => clearInterval(interval);
     }
-  }, [activeEvents.length]);
-
-  const loadEvents = async () => {
-    try {
-      setLoading(true);
-      const res = await fetch(`${API_BASE_URL}/api/events`);
-      const allEvents = await res.json();
-      
-      const now = new Date();
-      const active = allEvents.filter(event => new Date(event.event_time) >= now);
-      const past = allEvents.filter(event => new Date(event.event_time) < now);
-      
-      setActiveEvents(active);
-      setPastEvents(past);
-    } catch (error) {
-      console.error('Ошибка загрузки событий:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [upcomingEvents.length]);
 
   const carouselEvents = useMemo(() => {
-    return activeEvents.slice(0, 4).map(event => ({
+    return upcomingEvents.slice(0, 4).map(event => ({
       ...event,
-      image_url: event.image_url || `https://via.placeholder.com/1440x600?text=${encodeURIComponent(event.name)}`
+      image_url: event.long_url || `https://via.placeholder.com/1440x600?text=${encodeURIComponent(event.name)}`
     }));
-  }, [activeEvents]);
+  }, [upcomingEvents]);
 
   const filteredActiveEvents = useMemo(() => {
-    if (selectedCategories.length === 0) return activeEvents;
-    return activeEvents.filter(event => {
+    if (selectedCategories.length === 0) return upcomingEvents;
+    return upcomingEvents.filter(event => {
       return selectedCategories.some(cat => 
         event.description?.toLowerCase().includes(cat.toLowerCase()) ||
         event.name?.toLowerCase().includes(cat.toLowerCase())
       );
     });
-  }, [activeEvents, selectedCategories]);
+  }, [upcomingEvents, selectedCategories]);
 
   const filteredAfishaEvents = useMemo(() => {
-    let filtered = activeEvents;
+    let filtered = afishaEvents;
     if (selectedAfishaCategories.length > 0) {
       filtered = filtered.filter(event => {
         return selectedAfishaCategories.some(cat => 
@@ -87,7 +61,7 @@ function Home({ onNavigate }) {
       });
     }
     return filtered;
-  }, [activeEvents, selectedAfishaCategories]);
+  }, [afishaEvents, selectedAfishaCategories]);
 
   const handleCategoryToggle = (category) => {
     setSelectedCategories(prev =>
@@ -158,9 +132,14 @@ function Home({ onNavigate }) {
           <div className="hero-carousel">
             <div className="carousel-slide">
               <img 
-                src={carouselEvents[carouselIndex]?.image_url || 'https://via.placeholder.com/1440x600'} 
+                src={carouselEvents[carouselIndex]?.long_url && (carouselEvents[carouselIndex].long_url.startsWith('http://') || carouselEvents[carouselIndex].long_url.startsWith('https://'))
+                  ? carouselEvents[carouselIndex].long_url
+                  : `https://via.placeholder.com/1440x600/FF6B35/FFFFFF?text=${encodeURIComponent(carouselEvents[carouselIndex]?.name || 'Event')}`} 
                 alt={carouselEvents[carouselIndex]?.name || 'Event'} 
                 className="carousel-image"
+                onError={(e) => {
+                  e.target.src = `https://via.placeholder.com/1440x600/FF6B35/FFFFFF?text=${encodeURIComponent(carouselEvents[carouselIndex]?.name || 'Event')}`;
+                }}
               />
               <div className="carousel-overlay">
                 <div className="carousel-content">

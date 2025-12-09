@@ -32,13 +32,20 @@ function EventCard({ event, onClick }) {
   const category = getCategoryFromDescription(event.description);
   const hasTickets = availableSeats > 0;
 
+  const imageUrl = event.long_url && (event.long_url.startsWith('http://') || event.long_url.startsWith('https://'))
+    ? event.long_url
+    : `https://via.placeholder.com/230x346/FF6B35/FFFFFF?text=${encodeURIComponent(event.name || 'Event')}`;
+
   return (
     <div className="event-card" onClick={onClick}>
       <div className="event-image-wrapper">
         <img 
-          src={event.image_url || 'https://via.placeholder.com/230x346?text=Event'} 
+          src={imageUrl} 
           alt={event.name} 
-          className="event-image" 
+          className="event-image"
+          onError={(e) => {
+            e.target.src = `https://via.placeholder.com/230x346/FF6B35/FFFFFF?text=${encodeURIComponent(event.name || 'Event')}`;
+          }}
         />
         {hasTickets && (
           <div className="event-ticket-badge">
@@ -61,12 +68,16 @@ function EventCard({ event, onClick }) {
         <p className="event-category">{category}</p>
         <h3 className="event-title">{event.name}</h3>
         {event.description && (
-          <p className="event-genre">{event.description.split('.')[0]}</p>
+          <p className="event-description">{event.description}</p>
         )}
         <p className="event-details">
           {formatDate(event.event_time)}<br />
           {event.place}
         </p>
+        <div className="event-price-info">
+          <span className="event-price">{event.price} ₽</span>
+          <span className="event-purchased">Куплено: {event.purchased_count}</span>
+        </div>
       </div>
 
       <div className="event-tooltip">
@@ -77,6 +88,7 @@ function EventCard({ event, onClick }) {
             <span>Место: {event.place}</span>
             <span>Город: {event.city}</span>
             <span>Цена: {event.price} ₽</span>
+            <span>Куплено билетов: {event.purchased_count}</span>
             <span>Свободно мест: {availableSeats}</span>
           </div>
         </div>

@@ -8,6 +8,8 @@
   justify-content: center;
   position: relative;
   overflow: hidden;
+  padding: 0;
+  margin: 0;
 }
 
 .login-container {
@@ -44,21 +46,19 @@
 }
 
 .background-image {
-  width: 973px;
-  height: 795px;
+  width: 70%;
+  height: 100%;
   position: absolute;
-  left: 419px;
-  top: 127px;
-  background-image: url('https://api.builder.io/api/v1/image/assets/TEMP/cc745f3bb0be5ec41b80547944961ea0338c50a5?width=1946');
+  right: 0;
+  top: 0;
+  background-image: url('https://avatars.mds.yandex.net/i?id=b0903635931dbb2f5b2e898b1f8dfc80_l-5843587-images-thumbs&ref=rim&n=13&w=1440&h=810');
   background-size: cover;
-  background-position: center;
-  opacity: 0.3;
+  background-position: right top;
+  background-repeat: no-repeat;
+  opacity: 0.7;
 
   @media (max-width: 1200px) {
-    width: 600px;
-    height: 500px;
-    right: 0;
-    left: auto;
+    width: 50%;
   }
 
   @media (max-width: 768px) {

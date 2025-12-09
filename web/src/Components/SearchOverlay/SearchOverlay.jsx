@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import './SearchOverlay.scss';
+import { getApiUrl } from '../../config/api';
 
-const API_BASE_URL = 'http://localhost:8000';
 const MAX_RESULTS = 8;
 
 function SearchOverlay({ isOpen, onClose, onNavigate }) {
@@ -17,8 +17,24 @@ function SearchOverlay({ isOpen, onClose, onNavigate }) {
     setError('');
     setLoading(true);
 
-    fetch(`${API_BASE_URL}/api/events`)
-      .then((res) => res.json())
+    fetch(getApiUrl('/events/between'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
+      },
+      body: JSON.stringify({
+        start: new Date().toISOString(),
+        end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+        limit: 1000,
+      }),
+    })
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return res.json();
+      })
       .then((events) => {
         if (Array.isArray(events) && events.length > 0) {
           setCatalog(events);

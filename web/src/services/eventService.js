@@ -1,11 +1,13 @@
-const API_BASE_URL = 'http://localhost:8000';
+import { getApiUrl } from '../config/api';
 
 export const getEventsBetweenDates = async (startDate, endDate, limit = 100) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/events/between?limit=${limit}`, {
+    const url = getApiUrl(`/events/between?limit=${limit}`);
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
       },
       body: JSON.stringify({
         start: startDate.toISOString(),

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, Integer, Numeric, String, Text
+from sqlalchemy import DateTime, Integer, Numeric, String, Text, ForeignKey
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 class Base(DeclarativeBase):
@@ -8,7 +8,9 @@ class Base(DeclarativeBase):
 
 class ShortURL(Base):
     __tablename__ = "short_urls"
-    slug: Mapped[str] = mapped_column(String(32), primary_key=True, index=True, unique=True)
+
+    event_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    slug: Mapped[str] = mapped_column(String(32), unique=True, index=True)
     long_url: Mapped[str] = mapped_column(Text, nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     place: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -19,3 +21,13 @@ class ShortURL(Base):
     purchased_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     seats_total: Mapped[int] = mapped_column(Integer, nullable=False)
     account_id: Mapped[int] = mapped_column(Integer, nullable=False)
+
+
+class Order(Base):
+    __tablename__ = "orders"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    event_id: Mapped[int] = mapped_column(Integer, ForeignKey("short_urls.event_id"), nullable=False, index=True)
+    qrcode: Mapped[str] = mapped_column(Text, nullable=False)
+    payment_method: Mapped[str] = mapped_column(String(50), nullable=False)
+    people_count: Mapped[int] = mapped_column(Integer, nullable=False)

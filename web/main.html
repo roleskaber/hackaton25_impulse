@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Add to Calendar Demo</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+    }
+    .btn {
+      display: inline-block;
+      padding: 10px 20px;
+      background: #0069d9;
+      color: white;
+      text-decoration: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .btn:hover {
+      background: #0053a0;
+    }
+    form {
+      margin-bottom: 20px;
+    }
+    form input, form textarea {
+      display: block;
+      margin: 5px 0 15px;
+      width: 300px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Создать событие и скачать .ics</h1>
+
+  <form id="eventForm">
+    <label>
+      Название события:<br>
+      <input type="text" id="title" value="Моё событие">
+    </label>
+    <label>
+      Описание:<br>
+      <textarea id="description">Описание события</textarea>
+    </label>
+    <label>
+      Дата и время начала:<br>
+      <input type="datetime-local" id="start">
+    </label>
+    <label>
+      Дата и время окончания:<br>
+      <input type="datetime-local" id="end">
+    </label>
+    <button type="submit">Создать событие</button>
+  </form>
+
+  <a class="btn" id="downloadLink" style="display: none;">Скачать .ics</a>
+
+  <script>
+    document.getElementById('eventForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      const title = document.getElementById('title').value;
+      const description = document.getElementById('description').value;
+      const start = document.getElementById('start').value; // e.g. "2025-12-09T15:30"
+      const end = document.getElementById('end').value;
+
+      if (!title || !start || !end) {
+        alert('Заполните название, дату начала и окончания');
+        return;
+      }
+
+      // Преобразуем в формат YYYYMMDDTHHMMSSZ
+      function formatDate(dtLocal) {
+        const d = new Date(dtLocal);
+        return d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+      }
+
+      const dtStart = formatDate(start);
+      const dtEnd = formatDate(end);
+
+      const icsContent =
+`BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//My Calendar//EN
+BEGIN:VEVENT
+UID:${Date.now()}@myapp
+DTSTAMP:${formatDate(new Date().toISOString())}
+DTSTART:${dtStart}
+DTEND:${dtEnd}
+SUMMARY:${title}
+DESCRIPTION:${description}
+END:VEVENT
+END:VCALENDAR`;
+
+      const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+
+      const link = document.getElementById('downloadLink');
+      link.href = url;
+      link.download = 'event.ics';
+      link.style.display = 'inline-block';
+      link.textContent = 'Скачать .ics';
+
+      // Можно автоматически кликнуть, если хотите сразу скачать:
+      // link.click();
+    });
+  </script>
+
+</body>
+</html>

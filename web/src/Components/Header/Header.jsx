@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import './Header.scss';
 import { getCurrentUser, onAuthStateChange } from '../../services/authService';
 import SearchOverlay from '../SearchOverlay/SearchOverlay';
+import { LOGO_PATH } from '../../constants/assets';
 
 function Header({ onNavigate, currentPage = 'home' }) {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -67,7 +68,7 @@ function Header({ onNavigate, currentPage = 'home' }) {
         <div className="header-inner">
         <button className="logo-button" onClick={() => navigateTo('home')} aria-label="На главную">
           <img
-            src="https://api.builder.io/api/v1/image/assets/TEMP/e67f705e08dc2b67ab98d48ec9340cf50c555a7b?width=160"
+            src={LOGO_PATH}
             alt="Logo"
             className={`logo ${isScrolled && isMobile ? 'hidden' : ''}`}
           />

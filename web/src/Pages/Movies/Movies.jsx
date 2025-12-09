@@ -1,6 +1,5 @@
 ﻿import { useMemo, useState } from 'react';
 import './Movies.scss';
-import Footer from '../../Components/Footer/Footer';
 import Movie from '../../Components/Movie/Movie';
 import { useMovies } from '../../hooks/useMovies';
 import { POSTER_PLACEHOLDER } from '../../constants/placeholders';
@@ -356,8 +355,6 @@ function Movies({ onNavigate }) {
           </section>
         </div>
       </main>
-      
-      <Footer />
     </div>
   );
 }

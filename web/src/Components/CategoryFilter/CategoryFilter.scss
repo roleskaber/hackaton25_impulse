@@ -3,22 +3,7 @@
   padding: 0;
   background: #FFFFFF;
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-  overflow-x: auto;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(0, 0, 0, 0.1) transparent;
-
-  &::-webkit-scrollbar {
-    height: 6px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.1);
-    border-radius: 3px;
-  }
+  overflow-x: visible;
 }
 
 .category-filter-container {
@@ -26,14 +11,9 @@
   justify-content: center;
   align-items: center;
   min-width: max-content;
-  padding: 0 110px;
-
-  @media (max-width: 1200px) {
-    padding: 0 40px;
-  }
+  padding: 0;
 
   @media (max-width: 768px) {
-    padding: 0 16px;
     justify-content: flex-start;
   }
 }
@@ -51,18 +31,16 @@
   align-items: center;
   width: 170px;
   height: 108px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
   border-right: 1px solid rgba(0, 0, 0, 0.08);
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  border-left: 1px solid rgba(0, 0, 0, 0.08);
   background: transparent;
   cursor: pointer;
   transition: all 0.3s ease;
   flex-shrink: 0;
   padding: 22px 0;
   gap: 12px;
-
-  &:first-child {
-    border-left: 1px solid rgba(0, 0, 0, 0.08);
-  }
 
   &:hover {
     background: rgba(241, 90, 36, 0.02);

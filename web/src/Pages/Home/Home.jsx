@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import './Home.scss';
 import FAQ from '../../Components/FAQ/FAQ';
-import Footer from '../../Components/Footer/Footer';
 import EventCard from '../../Components/EventCard/EventCard';
 import CategoryFilter from '../../Components/CategoryFilter/CategoryFilter';
 
@@ -142,13 +141,20 @@ function Home({ onNavigate }) {
 
   return (
     <div className="home-page">
+      {carouselEvents.length === 0 && (
+        <div className="hero-carousel-placeholder">
+          <h2>Добро пожаловать на платформу афиши и билетов</h2>
+          <p>Найдите интересующие вас события и приобретите билеты онлайн</p>
+        </div>
+      )}
+
       <CategoryFilter 
         selectedCategories={selectedCategories}
         onCategoryToggle={handleCategoryToggle}
       />
 
       <section className="hero-carousel-section">
-        {carouselEvents.length > 0 ? (
+        {carouselEvents.length > 0 && (
           <div className="hero-carousel">
             <div className="carousel-slide">
               <img 
@@ -190,17 +196,12 @@ function Home({ onNavigate }) {
               ))}
             </div>
           </div>
-        ) : (
-          <div className="hero-carousel-placeholder">
-            <h2>Добро пожаловать на платформу афиши и билетов</h2>
-            <p>Найдите интересующие вас события и приобретите билеты онлайн</p>
-          </div>
         )}
       </section>
 
       <section className="active-events-section">
         <div className="section-header">
-          <h2 className="section-title">Активные события</h2>
+          <h2 className="section-title">Ближайшие события</h2>
         </div>
         
         {loading ? (
@@ -242,20 +243,7 @@ function Home({ onNavigate }) {
 
       <section className="afisha-section">
         <div className="section-header">
-          <h2 className="section-title">АФИША</h2>
-        </div>
-
-        <div className="afisha-categories">
-          {afishaCategories.map(category => (
-            <button
-              key={category}
-              className={`afisha-category-chip ${selectedAfishaCategories.includes(category) ? 'active' : ''}`}
-              onClick={() => handleAfishaCategoryToggle(category)}
-              type="button"
-            >
-              {category}
-            </button>
-          ))}
+          <h2 className="section-title">Афиша</h2>
         </div>
 
         {loading ? (
@@ -305,7 +293,6 @@ function Home({ onNavigate }) {
       </section>
 
       <FAQ />
-      <Footer />
     </div>
   );
 }

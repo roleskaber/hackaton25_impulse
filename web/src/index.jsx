@@ -72,7 +72,6 @@ function App() {
             <Home onNavigate={handleNavigate} />
             <div className="gradient-section">
               <FAQ />
-              <Footer />
             </div>
           </>
         );
@@ -83,6 +82,7 @@ function App() {
     <>
       <Header onNavigate={handleNavigate} currentPage={currentPage} />
       {renderPage()}
+      <Footer />
       <ToastContainer />
     </>
   );

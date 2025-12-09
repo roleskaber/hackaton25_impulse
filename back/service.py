@@ -8,6 +8,7 @@ from crud import (
     get_all_users_from_db_filtered,
     get_event_by_id,
     get_url_from_db,
+    get_event_from_db,
     update_user_in_db,
     get_events_between_dates,
     get_all_orders_from_db,
@@ -26,6 +27,8 @@ async def add_event(
     purchased_count: int,
     seats_total: int,
     account_id: int,
+    event_type: str | None = None,
+    message_link: str | None = None,
 ) -> dict:
     slug = generate_slug()
     for _ in range(5):
@@ -42,6 +45,8 @@ async def add_event(
                 purchased_count=purchased_count,
                 seats_total=seats_total,
                 account_id=account_id,
+                event_type=event_type,
+                message_link=message_link,
             )
             return {"slug": slug, "event_id": event_id}
         except SlugAlreadyExists:
@@ -106,6 +111,8 @@ async def list_events_between_dates(start: datetime, end: datetime, limit: int =
             "event_time": event.event_time,
             "price": float(event.price),
             "description": event.description,
+            "event_type": getattr(event, "event_type", None),
+            "message_link": getattr(event, "message_link", None),
             "purchased_count": event.purchased_count,
             "seats_total": event.seats_total,
             "account_id": event.account_id,
@@ -127,6 +134,13 @@ async def get_all_users(role: str | None = None, email: str | None = None):
         }
         for user in users
     ]
+
+
+async def get_event_details_by_slug(slug: str) -> dict:
+    event = await get_event_from_db(slug)
+    if not event:
+        raise NoUrlFoundException
+    return event
 
 
 async def update_user(

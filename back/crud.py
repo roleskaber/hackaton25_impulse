@@ -1,10 +1,12 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from database.db import new_session
 from database.models import Order, ShortURL, User
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from exceptions import SlugAlreadyExists
+from sqlalchemy.exc import IntegrityError as SAIntegrityError
+
 
 
 async def add_slug_to_db(
@@ -19,8 +21,13 @@ async def add_slug_to_db(
     purchased_count: int,
     seats_total: int,
     account_id: int,
+    event_type: str | None = None,
+    message_link: str | None = None,
 ) -> int:
     async with new_session() as session:
+        if event_time is not None and getattr(event_time, "tzinfo", None) is not None:
+            event_time = event_time.astimezone(timezone.utc).replace(tzinfo=None)
+
         new_slug = ShortURL(
             slug=slug,
             long_url=long_url,
@@ -30,6 +37,8 @@ async def add_slug_to_db(
             event_time=event_time,
             price=price,
             description=description,
+            event_type=event_type,
+            message_link=message_link,
             purchased_count=purchased_count,
             seats_total=seats_total,
             account_id=account_id,
@@ -49,7 +58,34 @@ async def get_url_from_db(slug: str) -> str | None:
         query = select(ShortURL).filter_by(slug=slug)
         result = await session.execute(query)
         res: ShortURL | None = result.scalar_one_or_none()
-    return res.long_url if res.long_url else None
+    if not res:
+        return None
+    return res.long_url
+
+
+async def get_event_from_db(slug: str) -> dict | None:
+    async with new_session() as session:
+        query = select(ShortURL).filter_by(slug=slug)
+        result = await session.execute(query)
+        res: ShortURL | None = result.scalar_one_or_none()
+        if not res:
+            return None
+        return {
+            "event_id": res.event_id,
+            "slug": res.slug,
+            "long_url": res.long_url,
+            "name": res.name,
+            "place": res.place,
+            "city": res.city,
+            "event_time": res.event_time,
+            "price": float(res.price),
+            "description": res.description,
+            "event_type": res.event_type,
+            "message_link": res.message_link,
+            "purchased_count": res.purchased_count,
+            "seats_total": res.seats_total,
+            "account_id": res.account_id,
+        }
 
 
 async def get_events_between_dates(
@@ -58,6 +94,12 @@ async def get_events_between_dates(
     limit: int = 100,
 ) -> list[ShortURL]:
     async with new_session() as session:
+        # Normalize incoming datetimes to UTC-naive to match the DB column
+        if start is not None and getattr(start, "tzinfo", None) is not None:
+            start = start.astimezone(timezone.utc).replace(tzinfo=None)
+        if end is not None and getattr(end, "tzinfo", None) is not None:
+            end = end.astimezone(timezone.utc).replace(tzinfo=None)
+
         query = (
             select(ShortURL)
             .where(ShortURL.event_time.between(start, end))
@@ -98,6 +140,29 @@ async def get_all_users_from_db() -> list[User]:
     async with new_session() as session:
         result = await session.execute(select(User))
         return list(result.scalars().all())
+
+
+async def create_user_in_db(email: str, display_name: str | None = None, phone: str | None = None, role: str = "user") -> User:
+    """Create a new user record. If a user with the same email exists, return it."""
+    async with new_session() as session:
+        # Check existing
+        query = select(User).filter_by(email=email)
+        res = await session.execute(query)
+        existing: User | None = res.scalar_one_or_none()
+        if existing:
+            return existing
+
+        user = User(email=email, display_name=display_name, phone=phone, role=role)
+        session.add(user)
+        try:
+            await session.commit()
+            await session.refresh(user)
+            return user
+        except SAIntegrityError:
+            # Race: another process inserted the user concurrently; fetch and return it
+            await session.rollback()
+            res = await session.execute(select(User).filter_by(email=email))
+            return res.scalar_one()
 
 
 async def update_user_in_db(

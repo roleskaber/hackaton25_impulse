@@ -1,0 +1,135 @@
+.category-filter {
+  width: 100%;
+  padding: 0;
+  background: #FFFFFF;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.1) transparent;
+
+  &::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 3px;
+  }
+}
+
+.category-filter-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-width: max-content;
+  padding: 0 110px;
+
+  @media (max-width: 1200px) {
+    padding: 0 40px;
+  }
+
+  @media (max-width: 768px) {
+    padding: 0 16px;
+    justify-content: flex-start;
+  }
+}
+
+.category-filter-list {
+  display: flex;
+  gap: 0;
+  min-width: max-content;
+}
+
+.category-item {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 170px;
+  height: 108px;
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+  padding: 22px 0;
+  gap: 12px;
+
+  &:first-child {
+    border-left: 1px solid rgba(0, 0, 0, 0.08);
+  }
+
+  &:hover {
+    background: rgba(241, 90, 36, 0.02);
+    
+    .category-icon svg path,
+    .category-icon svg g path {
+      fill: #F15A24;
+      stroke: #F15A24;
+    }
+
+    .category-label {
+      color: #F15A24;
+    }
+  }
+
+  &.active {
+    background: rgba(241, 90, 36, 0.05);
+    border-bottom: 2px solid #F15A24;
+    
+    .category-icon svg path,
+    .category-icon svg g path {
+      fill: #F15A24;
+      stroke: #F15A24;
+    }
+
+    .category-label {
+      color: #F15A24;
+      font-weight: 500;
+    }
+  }
+
+  @media (max-width: 768px) {
+    width: 140px;
+    height: 90px;
+    gap: 8px;
+  }
+}
+
+.category-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+
+  svg {
+    width: 32px;
+    height: 32px;
+    
+    path,
+    g path {
+      fill: #F15A24;
+      transition: all 0.3s ease;
+    }
+  }
+}
+
+.category-label {
+  color: #000;
+  text-align: center;
+  font-family: 'Segoe UI', -apple-system, Roboto, Helvetica, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  transition: all 0.3s ease;
+
+  @media (max-width: 768px) {
+    font-size: 12px;
+  }
+}

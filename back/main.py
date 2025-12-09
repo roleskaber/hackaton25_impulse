@@ -4,8 +4,9 @@ from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import Literal
-from database.db import engine
-from database.models import Base
+from database.db import engine, new_session
+from database.models import Base, User, ShortURL
+from sqlalchemy import select
 from contextlib import asynccontextmanager
 from service import (
     add_event as add_event_service,
@@ -14,7 +15,8 @@ from service import (
     get_all_users as get_all_users_service,
     get_all_orders as get_all_orders_service,
     update_user as update_user_service,
-    list_events_between_dates,
+    get_event_details_by_slug,
+    list_events_between_dates
 )
 from firebase_auth import (
     login_user,
@@ -26,7 +28,11 @@ from firebase_auth import (
 from exceptions import NoUrlFoundException
 import os
 from fastapi import Depends, Header
+from dotenv import load_dotenv
+import json
+import logging
 
+load_dotenv('.env')
 
 class EventCreate(BaseModel):
     long_url: str = Field(..., description="Полная ссылка на событие")
@@ -36,6 +42,8 @@ class EventCreate(BaseModel):
     event_time: datetime = Field(..., description="Дата и время события")
     price: float = Field(..., description="Цена билета")
     description: str = Field(..., description="Описание события")
+    event_type: str | None = Field(None, description="Тип события")
+    message_link: str | None = Field(None, description="Ссылка на сообщение")
     purchased_count: int = Field(..., ge=0, description="Количество купивших билет")
     seats_total: int = Field(..., gt=0, description="Количество мест")
     account_id: int = Field(..., description="ID аккаунта организатора")
@@ -116,6 +124,8 @@ async def create_event(event: EventCreate):
         event_time=event.event_time,
         price=event.price,
         description=event.description,
+        event_type=event.event_type,
+        message_link=event.message_link,
         purchased_count=event.purchased_count,
         seats_total=event.seats_total,
         account_id=event.account_id,
@@ -153,13 +163,7 @@ async def events_between_dates(payload: EventsBetweenRequest):
     return await list_events_between_dates(start=payload.start, end=payload.end, limit=100)
 
 
-@app.get("/{slug}")
-async def get_event_by_slug(slug: str):
-    try:
-        long_url = await get_event_by_slug_service(slug=slug)
-    except NoUrlFoundException:
-        return HTTPException(status.HTTP_404_NOT_FOUND, detail="...")
-    return RedirectResponse(url=long_url, status_code=status.HTTP_302_FOUND)
+
 
 
 @app.post("/order")
@@ -178,6 +182,21 @@ async def get_users(
     email: str | None = Query(None, description="Поиск по email (частичное совпадение)"),
 ):
     return await get_all_users_service(role=role, email=email)
+async def get_users():
+    async with new_session() as session:
+        result = await session.execute(select(User))
+        users = result.scalars().all()
+        return [
+            {
+                "id": u.id,
+                "email": u.email,
+                "display_name": u.display_name,
+                "phone": u.phone,
+                "role": u.role,
+                "created_at": u.created_at,
+            }
+            for u in users
+        ]
 
 
 @app.patch("/users/{user_id}", dependencies=[Depends(require_api_key)])
@@ -194,4 +213,70 @@ async def update_user(user_id: int, payload: UserUpdate):
 @app.get("/orders", dependencies=[Depends(require_api_key)])
 async def get_orders():
     return await get_all_orders_service()
+  
+@app.get("/expect")
+async def expect_ai(city: str):
+    async with new_session() as sess:
+        q = select(ShortURL).where(ShortURL.city == city).order_by(ShortURL.event_time.desc()).limit(5)
+        res = await sess.execute(q)
+        events = res.scalars().all()
+
+    if events:
+        events_text = "\n".join(
+            [
+                f"- {e.name} | {e.place} | {e.event_time.isoformat()} | type: {getattr(e, 'event_type', None)} | link: {getattr(e, 'message_link', None)}"
+                for e in events
+            ]
+        )
+    else:
+        events_text = "Нет известных событий для этого города."
+
+    # Ensure OPENAI API key is present
+    if not os.getenv("OPENAI_API_KEY"):
+        raise HTTPException(status_code=500, detail="OPENAI_API_KEY is not set in environment")
+
+    client = openai.OpenAI()
+    instruction = (
+        f"Верни один json события, которое ты считаешь более подходящим по актуальности для текущего сезона в городе {city}. "
+        "Возвращай только JSON-объект, без пояснений. Поля: long_url, name, place, city, event_time (ISO), price, description, event_type, message_link, purchased_count, seats_total, account_id."
+        f"\n\nСуществующие события (ограничено 5):\n{events_text}"
+    )
+    try:
+        resp = client.responses.create(model="gpt-4o-mini", input=instruction)
+        text = None
+        try:
+            text = resp.output[0].content[0].text
+        except Exception:
+            try:
+                text = resp.output_text
+            except Exception:
+                text = str(resp)
+        try:
+            parsed = json.loads(text)
+            return parsed
+        except Exception:
+            start = text.find('{')
+            end = text.rfind('}')
+            if start != -1 and end != -1 and end > start:
+                snippet = text[start:end+1]
+                try:
+                    parsed = json.loads(snippet)
+                    return parsed
+                except Exception:
+                    pass
+        raise HTTPException(status_code=500, detail="Failed to parse AI response as JSON")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.exception("AI request failed")
+        raise HTTPException(status_code=500, detail=f"AI request failed: {e}")
+
+
+@app.get("/{slug}")
+async def get_event_by_slug(slug: str):
+    try:
+        event = await get_event_details_by_slug(slug=slug)
+    except NoUrlFoundException:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
+    return event
 

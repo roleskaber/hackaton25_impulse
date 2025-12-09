@@ -2,7 +2,7 @@ import os
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
 engine = create_async_engine(
-    url = "postgresql+asyncpg://postgres:postgres@localhost:5433/postgres",
+    url="postgresql+asyncpg://postgres:postgres@impulse_db:5432/postgres",
 )
 
 new_session = async_sessionmaker(bind=engine, expire_on_commit=False)

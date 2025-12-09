@@ -5,3 +5,4 @@ sqlalchemy
 uvicorn[standard]
 httpx
 python-dotenv
+openai

@@ -18,6 +18,8 @@ class ShortURL(Base):
     event_time: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     price: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)
+    event_type: Mapped[str] = mapped_column(String(100), nullable=True)
+    message_link: Mapped[str] = mapped_column(String(1024), nullable=True)
     purchased_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     seats_total: Mapped[int] = mapped_column(Integer, nullable=False)
     account_id: Mapped[int] = mapped_column(Integer, nullable=False)

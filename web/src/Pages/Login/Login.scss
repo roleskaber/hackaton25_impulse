@@ -35,7 +35,7 @@
     transform: translateX(-5px);
 
     svg path {
-      stroke: #228EE5;
+      stroke: #FF6B35;
     }
   }
 
@@ -108,7 +108,7 @@
   align-items: flex-start;
   gap: 108px;
   margin-bottom: 3px;
-  padding-left: 15px;
+  padding-left: 0;
 
   @media (max-width: 480px) {
     gap: 80px;
@@ -118,22 +118,27 @@
 }
 
 .tab {
-  color: var(--color-text-primary);
+  color: #4A4A4A;
   text-align: center;
   font-family: Lato, -apple-system, Roboto, Helvetica, sans-serif;
   font-size: 24px;
   font-weight: 700;
   line-height: normal;
   cursor: pointer;
-  transition: all 0.3s ease;
-  opacity: 0.6;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 1;
+  position: relative;
+  transform: scale(1);
 
   &.active {
     opacity: 1;
+    color: #FF6B35;
+    transform: scale(1.05);
   }
 
   &:hover {
     opacity: 1;
+    transform: scale(1.03);
   }
 
   @media (max-width: 480px) {
@@ -142,16 +147,18 @@
 }
 
 .tab-indicator {
-  width: 69px;
+  width: 120px;
   height: 4px;
   border-radius: 50px;
-  background: #228EE5;
+  background: #FF6B35;
   filter: blur(3px);
-  margin-left: 8px;
+  margin-left: 0;
   margin-bottom: 81px;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
 
   @media (max-width: 480px) {
-    margin-left: 15%;
+    margin-left: 0;
   }
 }
 
@@ -160,6 +167,18 @@
   flex-direction: column;
   gap: 48px;
   margin-bottom: 26px;
+  animation: fadeInUp 0.5s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .input-field {
@@ -214,7 +233,7 @@
   transition: color 0.3s ease;
 
   &:hover {
-    color: #228EE5;
+    color: #FF6B35;
   }
 }
 
@@ -227,8 +246,8 @@
   align-items: center;
   border-radius: 12px;
   border: 1px solid #FFF;
-  background: #228EE5;
-  color: var(--color-text-primary);
+  background: #FF6B35;
+  color: #4A4A4A;
   text-align: center;
   font-family: Lato, -apple-system, Roboto, Helvetica, sans-serif;
   font-size: 16px;
@@ -239,9 +258,9 @@
   margin: 0 auto;
 
   &:hover {
-    background: #1a7bc7;
+    background: #E55A2B;
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(34, 142, 229, 0.5);
+    box-shadow: 0 8px 24px rgba(255, 107, 53, 0.5);
   }
 
   &:active {

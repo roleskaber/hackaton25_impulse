@@ -1,9 +1,12 @@
-﻿import { useState } from 'react';
+﻿import { useState, useRef, useEffect } from 'react';
 import './Login.scss';
 import { loginUser } from '../../services/authService';
 
 function Login({ onNavigate }) {
   const [activeTab, setActiveTab] = useState('login');
+  const indicatorRef = useRef(null);
+  const loginTabRef = useRef(null);
+  const registerTabRef = useRef(null);
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -44,21 +47,42 @@ function Login({ onNavigate }) {
     }
   };
 
+  useEffect(() => {
+    const updateIndicator = () => {
+      if (indicatorRef.current && loginTabRef.current && registerTabRef.current) {
+        const activeTabElement = activeTab === 'login' ? loginTabRef.current : registerTabRef.current;
+        const tabSwitcher = activeTabElement.parentElement;
+        const tabSwitcherLeft = tabSwitcher.getBoundingClientRect().left;
+        const activeTabLeft = activeTabElement.getBoundingClientRect().left;
+        const activeTabWidth = activeTabElement.offsetWidth;
+        const indicatorWidth = 120;
+        const offset = activeTabLeft - tabSwitcherLeft + (activeTabWidth - indicatorWidth) / 2;
+        
+        indicatorRef.current.style.transform = `translateX(${offset}px)`;
+        indicatorRef.current.style.width = `${indicatorWidth}px`;
+      }
+    };
+
+    updateIndicator();
+    window.addEventListener('resize', updateIndicator);
+    return () => window.removeEventListener('resize', updateIndicator);
+  }, [activeTab]);
+
   return (
     <div className="login-page">
       <div className="background-image"></div>
       <div className="login-container">
         <div className="login-form-wrapper">
-          <h1 className="logo-title">KinoDors</h1>
-
           <div className="tab-switcher">
             <div 
+              ref={loginTabRef}
               className={`tab ${activeTab === 'login' ? 'active' : ''}`}
               onClick={() => setActiveTab('login')}
             >
               Вход
             </div>
             <div
+              ref={registerTabRef}
               className={`tab ${activeTab === 'register' ? 'active' : ''}`}
               onClick={() => onNavigate('signup')}
             >
@@ -66,7 +90,7 @@ function Login({ onNavigate }) {
             </div>
           </div>
 
-          <div className="tab-indicator"></div>
+          <div className="tab-indicator" ref={indicatorRef}></div>
 
           <div className="form-inputs">
             <div className="input-field">

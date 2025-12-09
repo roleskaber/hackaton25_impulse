@@ -1,9 +1,12 @@
-﻿import { useState, useRef } from 'react';
+﻿import { useState, useRef, useEffect } from 'react';
 import './Signup.scss';
 import { registerUser } from '../../services/authService';
 
 function Signup({ onNavigate }) {
   const [step, setStep] = useState(1);
+  const indicatorRef = useRef(null);
+  const registerTabRef = useRef(null);
+  const loginTabRef = useRef(null);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -27,6 +30,29 @@ function Signup({ onNavigate }) {
       setStep(step - 1);
     }
   };
+
+  useEffect(() => {
+    const updateIndicator = () => {
+      if (indicatorRef.current && registerTabRef.current && loginTabRef.current) {
+        const activeTabElement = registerTabRef.current;
+        const tabSwitcher = activeTabElement.parentElement;
+        const tabSwitcherLeft = tabSwitcher.getBoundingClientRect().left;
+        const activeTabLeft = activeTabElement.getBoundingClientRect().left;
+        const activeTabWidth = activeTabElement.offsetWidth;
+        const indicatorWidth = 130;
+        const offset = activeTabLeft - tabSwitcherLeft + (activeTabWidth - indicatorWidth) / 2;
+        
+        indicatorRef.current.style.transform = `translateX(${offset}px)`;
+        indicatorRef.current.style.width = `${indicatorWidth}px`;
+      }
+    };
+
+    if (step === 1) {
+      updateIndicator();
+      window.addEventListener('resize', updateIndicator);
+      return () => window.removeEventListener('resize', updateIndicator);
+    }
+  }, [step]);
 
   const handleInputChange = (field, value) => {
     setFormData({ ...formData, [field]: value });
@@ -185,18 +211,16 @@ function Signup({ onNavigate }) {
             <div className="background-image"></div>
 
             <div className="signup-form-wrapper">
-              <h1 className="logo-title">KinoDors</h1>
-
               <div className="tab-switcher">
-                <div className="tab" onClick={() => onNavigate('login')}>
+                <div ref={loginTabRef} className="tab" onClick={() => onNavigate('login')}>
                   Вход
                 </div>
-                <div className="tab active">
+                <div ref={registerTabRef} className="tab active">
                   Регестрация
                 </div>
               </div>
 
-              <div className="tab-indicator"></div>
+              <div className="tab-indicator" ref={indicatorRef}></div>
 
               <div className="form-inputs">
                 <div className="input-field">
@@ -206,6 +230,19 @@ function Signup({ onNavigate }) {
                     value={formData.name}
                     onChange={(e) => handleInputChange('name', e.target.value)}
                   />
+                </div>
+
+                <div className="input-field">
+                  <input 
+                    type="text" 
+                    placeholder="Логин"
+                    value={formData.username}
+                    onChange={(e) => handleInputChange('username', e.target.value)}
+                  />
+                  <svg className="input-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path fillRule="evenodd" clipRule="evenodd" d="M4.99924 4C4.99924 2.34315 6.34239 1 7.99924 1C9.6561 1 10.9992 2.34315 10.9992 4C10.9992 5.65685 9.6561 7 7.99924 7C6.34239 7 4.99924 5.65685 4.99924 4Z" fill="var(--color-text-primary)"/>
+                    <path fillRule="evenodd" clipRule="evenodd" d="M2.50007 13.4036C2.55163 10.4104 4.9939 8 7.99924 8C11.0047 8 13.447 10.4105 13.4984 13.4038C13.5018 13.6023 13.3875 13.784 13.207 13.8668C11.6211 14.5945 9.85693 15 7.99946 15C6.14182 15 4.37753 14.5945 2.79146 13.8666C2.61101 13.7838 2.49666 13.6021 2.50007 13.4036Z" fill="var(--color-text-primary)"/>
+                  </svg>
                 </div>
 
                 <div className="input-field">
@@ -236,21 +273,6 @@ function Signup({ onNavigate }) {
                 </div>
               </div>
 
-              <div className="username-input">
-                <div className="input-field">
-                  <input 
-                    type="text" 
-                    placeholder="Логин"
-                    value={formData.username}
-                    onChange={(e) => handleInputChange('username', e.target.value)}
-                  />
-                  <svg className="input-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path fillRule="evenodd" clipRule="evenodd" d="M4.99924 4C4.99924 2.34315 6.34239 1 7.99924 1C9.6561 1 10.9992 2.34315 10.9992 4C10.9992 5.65685 9.6561 7 7.99924 7C6.34239 7 4.99924 5.65685 4.99924 4Z" fill="var(--color-text-primary)"/>
-                    <path fillRule="evenodd" clipRule="evenodd" d="M2.50007 13.4036C2.55163 10.4104 4.9939 8 7.99924 8C11.0047 8 13.447 10.4105 13.4984 13.4038C13.5018 13.6023 13.3875 13.784 13.207 13.8668C11.6211 14.5945 9.85693 15 7.99946 15C6.14182 15 4.37753 14.5945 2.79146 13.8666C2.61101 13.7838 2.49666 13.6021 2.50007 13.4036Z" fill="var(--color-text-primary)"/>
-                  </svg>
-                </div>
-              </div>
-
               {error && (
                 <div className="error-message" style={{ 
                   color: '#ff4d4d', 
@@ -267,7 +289,7 @@ function Signup({ onNavigate }) {
                 onClick={handleContinue}
                 disabled={loading}
               >
-                {loading ? 'Загрузка...' : 'Продолжить'}
+                {loading ? 'Загрузка...' : 'Зарегистрироваться'}
               </button>
             </div>
           </div>

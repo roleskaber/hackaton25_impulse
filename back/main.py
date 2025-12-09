@@ -5,7 +5,11 @@ from pydantic import BaseModel, Field
 from database.db import engine
 from database.models import Base
 from contextlib import asynccontextmanager
-from service import add_event as add_event_service, get_event_by_slug as get_event_by_slug_service
+from service import (
+    add_event as add_event_service,
+    get_event_by_slug as get_event_by_slug_service,
+    create_order as create_order_service,
+)
 from firebase_auth import login_user, register_user, send_verification_email
 from exceptions import NoUrlFoundException
 
@@ -21,6 +25,13 @@ class EventCreate(BaseModel):
     purchased_count: int = Field(..., ge=0, description="Количество купивших билет")
     seats_total: int = Field(..., gt=0, description="Количество мест")
     account_id: int = Field(..., description="ID аккаунта организатора")
+
+
+class OrderCreate(BaseModel):
+    event_id: int = Field(..., description="ID события")
+    qrcode: str = Field(..., description="QR-код заказа")
+    payment_method: str = Field(..., description="Способ оплаты")
+    people_count: int = Field(..., gt=0, description="Количество человек")
 
 
 class RegisterRequest(BaseModel):
@@ -60,7 +71,7 @@ async def create_event(event: EventCreate):
         seats_total=event.seats_total,
         account_id=event.account_id,
     )
-    return {"slug": slug}
+    return slug
 
 
 @app.post("/auth/register")
@@ -85,4 +96,14 @@ async def get_event_by_slug(slug: str):
     except NoUrlFoundException:
         return HTTPException(status.HTTP_404_NOT_FOUND, detail="...")
     return RedirectResponse(url=long_url, status_code=status.HTTP_302_FOUND)
+
+
+@app.post("/order")
+async def create_order(order: OrderCreate):
+    return await create_order_service(
+        event_id=order.event_id,
+        qrcode=order.qrcode,
+        payment_method=order.payment_method,
+        people_count=order.people_count,
+    )
 

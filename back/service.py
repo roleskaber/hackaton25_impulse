@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from shortener import generate_slug
-from crud import add_slug_to_db, get_url_from_db
+from crud import add_slug_to_db, create_order_in_db, get_event_by_id, get_url_from_db
 from exceptions import NoUrlFoundException, ShortenerBaseException, SlugAlreadyExists
 
 
@@ -16,11 +16,11 @@ async def add_event(
     purchased_count: int,
     seats_total: int,
     account_id: int,
-) -> str:
+) -> dict:
     slug = generate_slug()
     for _ in range(5):
         try:
-            await add_slug_to_db(
+            event_id = await add_slug_to_db(
                 slug=slug,
                 long_url=long_url,
                 name=name,
@@ -33,7 +33,7 @@ async def add_event(
                 seats_total=seats_total,
                 account_id=account_id,
             )
-            return slug
+            return {"slug": slug, "event_id": event_id}
         except SlugAlreadyExists:
             continue
 
@@ -44,4 +44,41 @@ async def get_event_by_slug(
     if not url:
         raise NoUrlFoundException
     return url
+
+
+async def create_order(
+    event_id: int,
+    qrcode: str,
+    payment_method: str,
+    people_count: int,
+):
+    event = await get_event_by_id(event_id)
+    if not event:
+        raise NoUrlFoundException
+    order_id = await create_order_in_db(
+        event_id=event_id,
+        qrcode=qrcode,
+        payment_method=payment_method,
+        people_count=people_count,
+    )
+    return {
+        "order_id": order_id,
+        "event": {
+            "event_id": event.event_id,
+            "slug": event.slug,
+            "long_url": event.long_url,
+            "name": event.name,
+            "place": event.place,
+            "city": event.city,
+            "event_time": event.event_time,
+            "price": float(event.price),
+            "description": event.description,
+            "purchased_count": event.purchased_count,
+            "seats_total": event.seats_total,
+            "account_id": event.account_id,
+        },
+        "qrcode": qrcode,
+        "payment_method": payment_method,
+        "people_count": people_count,
+    }
     

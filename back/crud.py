@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 
 from database.db import new_session
 from database.models import Order, Event, User
-from sqlalchemy import select, update
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from exceptions import SlugAlreadyExists
 from sqlalchemy.exc import IntegrityError as SAIntegrityError

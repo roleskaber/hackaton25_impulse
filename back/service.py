@@ -11,8 +11,7 @@ from crud import (
     update_user_in_db,
     get_events_between_dates,
 )
-from exceptions import NoUrlFoundException, ShortenerBaseException, SlugAlreadyExists
-
+from exceptions import NoUrlFoundException, SlugAlreadyExists
 
 async def add_event(
     long_url: str,
@@ -27,7 +26,7 @@ async def add_event(
     account_id: int,
     event_type: str | None = None,
     message_link: str | None = None,
-) -> dict:
+) -> dict[str, str | int] | None:
     slug = generate_slug()
     for _ in range(5):
         try:
@@ -49,6 +48,8 @@ async def add_event(
             return {"slug": slug, "event_id": event_id}
         except SlugAlreadyExists:
             continue
+    return None
+
 
 async def get_event_by_slug(
     slug: str

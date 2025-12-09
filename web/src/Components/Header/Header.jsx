@@ -3,6 +3,7 @@ import './Header.scss';
 import { getCurrentUser, onAuthStateChange } from '../../services/authService';
 import SearchOverlay from '../SearchOverlay/SearchOverlay';
 import { LOGO_PATH } from '../../constants/assets';
+import { useCity } from '../../contexts/CityContext';
 
 function Header({ onNavigate, currentPage = 'home' }) {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -10,7 +11,7 @@ function Header({ onNavigate, currentPage = 'home' }) {
   const [isAuthenticated, setIsAuthenticated] = useState(() => !!getCurrentUser());
   const [userData, setUserData] = useState(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [selectedCity, setSelectedCity] = useState('Москва');
+  const { selectedCity, setSelectedCity } = useCity();
   const [isCityDropdownOpen, setIsCityDropdownOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(() => {
     if (typeof window === 'undefined') {

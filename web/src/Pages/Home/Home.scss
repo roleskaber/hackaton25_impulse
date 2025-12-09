@@ -296,6 +296,12 @@
   scrollbar-color: rgba(34, 142, 229, 0.3) transparent;
   flex: 1;
   padding: 8px 0;
+  flex-wrap: nowrap;
+  min-width: 0;
+
+  > * {
+    flex-shrink: 0;
+  }
 
   &::-webkit-scrollbar {
     height: 6px;
@@ -312,6 +318,29 @@
 
   @media (max-width: 768px) {
     gap: 16px;
+  }
+}
+
+.active-events-section .events-scroll {
+  position: relative;
+
+  &::after {
+    content: '';
+    flex-shrink: 0;
+    width: 100px;
+    height: 1px;
+  }
+}
+
+.events-scroll-no-scroll {
+  overflow-x: visible;
+  overflow-y: visible;
+  flex-wrap: wrap;
+  scrollbar-width: none;
+  scrollbar-color: transparent transparent;
+
+  &::-webkit-scrollbar {
+    display: none;
   }
 }
 

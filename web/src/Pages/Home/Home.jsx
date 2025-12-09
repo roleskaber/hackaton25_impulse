@@ -4,6 +4,7 @@ import FAQ from '../../Components/FAQ/FAQ';
 import EventCard from '../../Components/EventCard/EventCard';
 import CategoryFilter from '../../Components/CategoryFilter/CategoryFilter';
 import { useEvents } from '../../hooks/useEvents';
+import { useCity } from '../../contexts/CityContext';
 
 const afishaCategories = [
   'Кино',
@@ -18,9 +19,11 @@ const afishaCategories = [
 
 function Home({ onNavigate }) {
   const { upcomingEvents, afishaEvents, loading } = useEvents();
+  const { selectedCity } = useCity();
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [selectedAfishaCategories, setSelectedAfishaCategories] = useState([]);
   const [carouselIndex, setCarouselIndex] = useState(0);
+  const [displayedAfishaCount, setDisplayedAfishaCount] = useState(4);
   const activeEventsRef = useRef(null);
   const afishaEventsRef = useRef(null);
 
@@ -41,14 +44,25 @@ function Home({ onNavigate }) {
   }, [upcomingEvents]);
 
   const filteredActiveEvents = useMemo(() => {
-    if (selectedCategories.length === 0) return upcomingEvents;
-    return upcomingEvents.filter(event => {
-      return selectedCategories.some(cat => 
-        event.description?.toLowerCase().includes(cat.toLowerCase()) ||
-        event.name?.toLowerCase().includes(cat.toLowerCase())
-      );
+    let filtered = upcomingEvents;
+    
+    if (selectedCategories.length > 0) {
+      filtered = filtered.filter(event => {
+        return selectedCategories.some(cat => 
+          event.description?.toLowerCase().includes(cat.toLowerCase()) ||
+          event.name?.toLowerCase().includes(cat.toLowerCase())
+        );
+      });
+    }
+    
+    return filtered.sort((a, b) => {
+      const aMatches = a.city === selectedCity;
+      const bMatches = b.city === selectedCity;
+      if (aMatches && !bMatches) return -1;
+      if (!aMatches && bMatches) return 1;
+      return 0;
     });
-  }, [upcomingEvents, selectedCategories]);
+  }, [upcomingEvents, selectedCategories, selectedCity]);
 
   const filteredAfishaEvents = useMemo(() => {
     let filtered = afishaEvents;
@@ -60,8 +74,19 @@ function Home({ onNavigate }) {
         );
       });
     }
-    return filtered;
-  }, [afishaEvents, selectedAfishaCategories]);
+    
+    return filtered.sort((a, b) => {
+      const aMatches = a.city === selectedCity;
+      const bMatches = b.city === selectedCity;
+      if (aMatches && !bMatches) return -1;
+      if (!aMatches && bMatches) return 1;
+      return 0;
+    });
+  }, [afishaEvents, selectedAfishaCategories, selectedCity]);
+
+  useEffect(() => {
+    setDisplayedAfishaCount(4);
+  }, [selectedAfishaCategories]);
 
   const handleCategoryToggle = (category) => {
     setSelectedCategories(prev =>
@@ -95,14 +120,8 @@ function Home({ onNavigate }) {
     }
   };
 
-  const scrollAfishaEvents = (direction) => {
-    if (afishaEventsRef.current) {
-      const scrollAmount = 400;
-      afishaEventsRef.current.scrollBy({
-        left: direction === 'left' ? -scrollAmount : scrollAmount,
-        behavior: 'smooth'
-      });
-    }
+  const handleSeeMore = () => {
+    setDisplayedAfishaCount(prev => prev + 4);
   };
 
   const nextCarousel = () => {
@@ -228,47 +247,33 @@ function Home({ onNavigate }) {
         {loading ? (
           <div className="loading-message">Загрузка событий...</div>
         ) : filteredAfishaEvents.length > 0 ? (
-          <div className="events-scroll-container">
-            <button 
-              className="scroll-arrow scroll-left" 
-              onClick={() => scrollAfishaEvents('left')}
-              aria-label="Прокрутить влево"
-            >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path d="M15 18L9 12L15 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
-            <div className="events-scroll" ref={afishaEventsRef}>
-              {filteredAfishaEvents.map(event => (
-                <EventCard
-                  key={event.event_id}
-                  event={event}
-                  onClick={() => handleEventClick(event)}
-                />
-              ))}
+          <>
+            <div className="events-scroll-container">
+              <div className="events-scroll events-scroll-no-scroll" ref={afishaEventsRef}>
+                {filteredAfishaEvents.slice(0, displayedAfishaCount).map(event => (
+                  <EventCard
+                    key={event.event_id}
+                    event={event}
+                    onClick={() => handleEventClick(event)}
+                  />
+                ))}
+              </div>
             </div>
-            <button 
-              className="scroll-arrow scroll-right" 
-              onClick={() => scrollAfishaEvents('right')}
-              aria-label="Прокрутить вправо"
-            >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path d="M9 18L15 12L9 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
-          </div>
+
+            {displayedAfishaCount < filteredAfishaEvents.length && (
+              <div className="see-more-container">
+                <button className="see-more-btn" onClick={handleSeeMore}>
+                  Посмотреть еще
+                  <svg width="24" height="24" viewBox="0 0 25 25" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M13.7407 19.8516L21.377 12.2231M21.377 12.2231L13.7485 4.58683M21.377 12.2231L3.05927 12.2138" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+            )}
+          </>
         ) : (
           <div className="no-events-message">Нет событий по выбранным категориям</div>
         )}
-
-        <div className="see-more-container">
-          <button className="see-more-btn">
-            Посмотреть еще
-            <svg width="24" height="24" viewBox="0 0 25 25" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M13.7407 19.8516L21.377 12.2231M21.377 12.2231L13.7485 4.58683M21.377 12.2231L3.05927 12.2138" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
-        </div>
       </section>
 
       <FAQ />

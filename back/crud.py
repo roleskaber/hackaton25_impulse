@@ -8,6 +8,7 @@ from exceptions import SlugAlreadyExists
 from sqlalchemy.exc import IntegrityError as SAIntegrityError
 
 
+
 async def add_slug_to_db(
     slug: str,
     long_url: str,
@@ -24,8 +25,6 @@ async def add_slug_to_db(
     message_link: str | None = None,
 ) -> int:
     async with new_session() as session:
-        # Normalize event_time: if caller passed a timezone-aware datetime,
-        # convert it to UTC naive to match existing DB column (TIMESTAMP WITHOUT TIME ZONE).
         if event_time is not None and getattr(event_time, "tzinfo", None) is not None:
             event_time = event_time.astimezone(timezone.utc).replace(tzinfo=None)
 
@@ -95,6 +94,12 @@ async def get_events_between_dates(
     limit: int = 100,
 ) -> list[ShortURL]:
     async with new_session() as session:
+        # Normalize incoming datetimes to UTC-naive to match the DB column
+        if start is not None and getattr(start, "tzinfo", None) is not None:
+            start = start.astimezone(timezone.utc).replace(tzinfo=None)
+        if end is not None and getattr(end, "tzinfo", None) is not None:
+            end = end.astimezone(timezone.utc).replace(tzinfo=None)
+
         query = (
             select(ShortURL)
             .where(ShortURL.event_time.between(start, end))

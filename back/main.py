@@ -1,16 +1,15 @@
 
-from fastapi import FastAPI, HTTPException, status, Depends
+from fastapi import FastAPI, HTTPException, status
 import openai
 from fastapi.middleware.cors import CORSMiddleware
 from database.db import engine, new_session
-from database.models import Base, User, ShortURL
+from database.models import Base, User, Event
 from sqlalchemy import select
 from contextlib import asynccontextmanager
 from service import (
-    add_event as add_event_service,
-    get_event_by_slug as get_event_by_slug_service,
-    create_order as create_order_service,
-    update_user as update_user_service,
+    add_event,
+    create_order,
+    update_user,
     get_event_details_by_slug,
     list_events_between_dates
 )
@@ -27,7 +26,7 @@ from fastapi import Depends, Header
 from dotenv import load_dotenv
 import json
 import logging
-from .datatypes import *
+from datatypes import *
 
 load_dotenv('.env')
 
@@ -58,7 +57,7 @@ app.add_middleware(
 
 @app.post("/add_event")
 async def create_event(event: EventCreate):
-    slug = await add_event_service(
+    slug = await add_event(
         long_url=event.long_url,
         name=event.name,
         place=event.place,
@@ -104,13 +103,9 @@ async def password_reset_confirm(request: PasswordResetConfirm):
 async def events_between_dates(payload: EventsBetweenRequest, limit: int = 100):
     return await list_events_between_dates(start=payload.start, end=payload.end, limit=limit)
 
-
-
-
-
 @app.post("/order")
 async def create_order(order: OrderCreate):
-    return await create_order_service(
+    return await create_order(
         event_id=order.event_id,
         qrcode=order.qrcode,
         payment_method=order.payment_method,
@@ -138,7 +133,7 @@ async def get_users():
 
 @app.patch("/users/{user_id}", dependencies=[Depends(require_api_key)])
 async def update_user(user_id: int, payload: UserUpdate):
-    updated = await update_user_service(
+    updated = await update_user(
         user_id=user_id,
         display_name=payload.display_name,
         phone=payload.phone,
@@ -149,7 +144,7 @@ async def update_user(user_id: int, payload: UserUpdate):
 @app.get("/expect")
 async def expect_ai(city: str):
     async with new_session() as sess:
-        q = select(ShortURL).where(ShortURL.city == city).order_by(ShortURL.event_time.desc()).limit(5)
+        q = select(Event).where(Event.city == city).order_by(Event.event_time.desc()).limit(5)
         res = await sess.execute(q)
         events = res.scalars().all()
 

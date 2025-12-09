@@ -1,6 +1,15 @@
+import { useState, useEffect } from 'react';
 import './EventCard.scss';
 
 function EventCard({ event, onClick }) {
+  const [imageError, setImageError] = useState(false);
+  const [imageLoading, setImageLoading] = useState(true);
+
+  useEffect(() => {
+    setImageError(false);
+    setImageLoading(true);
+  }, [event.event_id, event.long_url]);
+
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     const day = date.getDate();
@@ -32,20 +41,50 @@ function EventCard({ event, onClick }) {
   const category = getCategoryFromDescription(event.description);
   const hasTickets = availableSeats > 0;
 
-  const imageUrl = event.long_url && (event.long_url.startsWith('http://') || event.long_url.startsWith('https://'))
-    ? event.long_url
-    : `https://via.placeholder.com/230x346/FF6B35/FFFFFF?text=${encodeURIComponent(event.name || 'Event')}`;
+  const getPlaceholderUrl = () => {
+    const eventName = event.name || 'Event';
+    const shortName = eventName.length > 20 ? eventName.substring(0, 20) + '...' : eventName;
+    return `https://via.placeholder.com/230x346/FF6B35/FFFFFF?text=${encodeURIComponent(shortName)}`;
+  };
+
+  const getImageUrl = () => {
+    if (imageError) {
+      return getPlaceholderUrl();
+    }
+    if (event.long_url && (event.long_url.startsWith('http://') || event.long_url.startsWith('https://'))) {
+      return event.long_url;
+    }
+    return getPlaceholderUrl();
+  };
+
+  const handleImageError = () => {
+    setImageError(true);
+    setImageLoading(false);
+  };
+
+  const handleImageLoad = () => {
+    setImageLoading(false);
+  };
 
   return (
     <div className="event-card" onClick={onClick}>
       <div className="event-image-wrapper">
+        {imageLoading && !imageError && (
+          <div className="event-image-placeholder">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#FF6B35" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M2 17L12 22L22 17" stroke="#FF6B35" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M2 12L12 17L22 12" stroke="#FF6B35" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+        )}
         <img 
-          src={imageUrl} 
+          src={getImageUrl()} 
           alt={event.name} 
           className="event-image"
-          onError={(e) => {
-            e.target.src = `https://via.placeholder.com/230x346/FF6B35/FFFFFF?text=${encodeURIComponent(event.name || 'Event')}`;
-          }}
+          onError={handleImageError}
+          onLoad={handleImageLoad}
+          style={{ display: imageLoading && !imageError ? 'none' : 'block' }}
         />
         {hasTickets && (
           <div className="event-ticket-badge">

@@ -27,6 +27,9 @@
   width: 100%;
   position: relative;
   margin-bottom: 16px;
+  background: rgba(255, 107, 53, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
 }
 
 .event-image {
@@ -35,6 +38,7 @@
   object-fit: cover;
   border-radius: 3px;
   aspect-ratio: 230/346;
+  background: rgba(255, 107, 53, 0.05);
 
   @media (max-width: 768px) {
     width: 200px;
@@ -44,6 +48,50 @@
   @media (max-width: 480px) {
     width: 180px;
     height: 270px;
+  }
+}
+
+.event-image-placeholder {
+  width: 230px;
+  height: 346px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 107, 53, 0.1);
+  border-radius: 3px;
+  animation: pulse 1.5s ease-in-out infinite;
+
+  svg {
+    opacity: 0.3;
+    animation: rotate 2s linear infinite;
+  }
+
+  @media (max-width: 768px) {
+    width: 200px;
+    height: 300px;
+  }
+
+  @media (max-width: 480px) {
+    width: 180px;
+    height: 270px;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }
 

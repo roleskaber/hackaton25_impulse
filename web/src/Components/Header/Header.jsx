@@ -61,6 +61,13 @@ function Header({ onNavigate, currentPage = 'home' }) {
 
   const openSearch = () => setIsSearchOpen(true);
   const closeSearch = () => setIsSearchOpen(false);
+  const handleProtectedNavigate = (route) => {
+    if (isAuthenticated) {
+      navigateTo(route);
+      return;
+    }
+    navigateTo('login');
+  };
 
   return (
     <>
@@ -96,14 +103,14 @@ function Header({ onNavigate, currentPage = 'home' }) {
         <div className="header-actions">
           <button
             className="header-action-btn achievements-btn"
-            onClick={() => navigateTo('achievements')}
+            onClick={() => handleProtectedNavigate('achievements')}
             type="button"
           >
             Достижения
           </button>
           <button
             className="header-action-btn my-events-btn"
-            onClick={() => navigateTo('my-events')}
+            onClick={() => handleProtectedNavigate('my-events')}
             type="button"
           >
             Мои события
@@ -148,11 +155,11 @@ function Header({ onNavigate, currentPage = 'home' }) {
             <span>Главная</span>
             <span className="mobile-nav-glow" aria-hidden="true" />
           </button>
-          <button className="mobile-nav-item" onClick={() => navigateTo('my-events')} type="button">
+          <button className="mobile-nav-item" onClick={() => handleProtectedNavigate('my-events')} type="button">
             <span>Мои события</span>
             <span className="mobile-nav-glow" aria-hidden="true" />
           </button>
-          <button className="mobile-nav-item" onClick={() => navigateTo('achievements')} type="button">
+          <button className="mobile-nav-item" onClick={() => handleProtectedNavigate('achievements')} type="button">
             <span>Достижения</span>
             <span className="mobile-nav-glow" aria-hidden="true" />
           </button>

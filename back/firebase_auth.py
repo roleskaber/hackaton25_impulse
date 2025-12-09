@@ -1,9 +1,18 @@
 import os
 from typing import Any, Dict
+from pathlib import Path
 
 import httpx
 from fastapi import HTTPException, status
+from dotenv import load_dotenv
 
+# Load .env from the same directory as this file if present, otherwise fall back
+# to the default loader (which checks the working directory and environment).
+env_path = Path(__file__).resolve().parent / ".env"
+if env_path.exists():
+    load_dotenv(env_path)
+else:
+    load_dotenv()
 
 FIREBASE_API_KEY = os.getenv("FIREBASE_API_KEY")
 FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID")
@@ -38,7 +47,6 @@ async def register_user(email: str, password: str) -> Dict[str, Any]:
             "returnSecureToken": True,
         },
     )
-    # Send verification email right after registration
     await send_verification_email(data["idToken"])
     return data
 

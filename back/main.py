@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 from database.db import engine
 from database.models import Base
 from contextlib import asynccontextmanager
-from service import generate_short_url, get_url_by_slug
+from service import add_event, get_event_by_slug
 from firebase_auth import login_user, register_user, send_verification_email
 from exceptions import NoUrlFoundException
 
@@ -46,11 +46,11 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 
-@app.post("/short_url")
-async def generate_slug_url(
+@app.post("/add_event")
+async def add_event(
     event: EventCreate
 ):
-    slug = await generate_short_url(
+    slug = await add_event(
         long_url=event.long_url,
         name=event.name,
         place=event.place,
@@ -81,9 +81,9 @@ async def verify_email(request: VerifyEmailRequest):
 
 
 @app.get("/{slug}")
-async def redirect_to_url(slug: str):
+async def get_event_by_slug(slug: str):
     try:
-        long_url = await get_url_by_slug(slug=slug)
+        long_url = await get_event_by_slug(slug=slug)
     except NoUrlFoundException:
         return HTTPException(status.HTTP_404_NOT_FOUND, detail="...")
     return RedirectResponse(url=long_url, status_code=status.HTTP_302_FOUND)

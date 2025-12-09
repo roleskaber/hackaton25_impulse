@@ -5,8 +5,7 @@ from crud import add_slug_to_db, get_url_from_db
 from exceptions import NoUrlFoundException, ShortenerBaseException, SlugAlreadyExists
 
 
-async def generate_short_url(
-    long_url: str,
+async def add_event(
     name: str,
     place: str,
     city: str,
@@ -22,7 +21,6 @@ async def generate_short_url(
         try:
             await add_slug_to_db(
                 slug=slug,
-                long_url=long_url,
                 name=name,
                 place=place,
                 city=city,
@@ -37,7 +35,7 @@ async def generate_short_url(
         except SlugAlreadyExists:
             continue
 
-async def get_url_by_slug(
+async def get_event_by_slug(
     slug: str
 ):
     url = await get_url_from_db(slug)

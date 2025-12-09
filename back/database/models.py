@@ -10,7 +10,6 @@ class ShortURL(Base):
     __tablename__ = "short_urls"
 
     slug: Mapped[str] = mapped_column(String(32), primary_key=True, index=True, unique=True)
-    long_url: Mapped[str] = mapped_column(Text, nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     place: Mapped[str] = mapped_column(String(255), nullable=False)
     city: Mapped[str] = mapped_column(String(255), nullable=False)

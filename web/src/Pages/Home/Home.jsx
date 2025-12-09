@@ -197,6 +197,64 @@ function Home({ onNavigate }) {
         )}
       </section>
 
+      {upcomingEvents.length > 0 && (
+        <section className="ai-recommendation-section">
+          <div className="ai-recommendation-container">
+            <div className="ai-recommendation-image-wrapper">
+              {upcomingEvents[0].long_url && (upcomingEvents[0].long_url.startsWith('http://') || upcomingEvents[0].long_url.startsWith('https://')) ? (
+                <img 
+                  src={upcomingEvents[0].long_url} 
+                  alt={upcomingEvents[0].name}
+                  className="ai-recommendation-image"
+                  onError={(e) => {
+                    e.target.src = `https://via.placeholder.com/400x300/FF6B35/FFFFFF?text=${encodeURIComponent(upcomingEvents[0].name || 'Event')}`;
+                  }}
+                />
+              ) : (
+                <div className="ai-recommendation-placeholder">
+                  <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#FF6B35" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M2 17L12 22L22 17" stroke="#FF6B35" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M2 12L12 17L22 12" stroke="#FF6B35" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+              )}
+              <h3 className="ai-recommendation-event-title">{upcomingEvents[0].name}</h3>
+              <div className="ai-recommendation-tooltip">
+                <div className="tooltip-content">
+                  <h4>{upcomingEvents[0].name}</h4>
+                  <p>{upcomingEvents[0].description}</p>
+                  <div className="tooltip-details">
+                    <span>Место: {upcomingEvents[0].place}</span>
+                    <span>Город: {upcomingEvents[0].city}</span>
+                    <span>Дата: {new Date(upcomingEvents[0].event_time).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                    <span>Цена: {upcomingEvents[0].price} ₽</span>
+                    <span>Куплено билетов: {upcomingEvents[0].purchased_count}</span>
+                    <span>Свободно мест: {upcomingEvents[0].seats_total - upcomingEvents[0].purchased_count}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="ai-recommendation-content">
+              <div className="ai-recommendation-badge">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" fill="#FF6B35"/>
+                </svg>
+                <span>ИИ рекомендует</span>
+              </div>
+              <h2 className="ai-recommendation-heading">Самое актуальное событие</h2>
+              <p className="ai-recommendation-text">
+                Наш искусственный интеллект проанализировал все доступные события и выбрал это как самое интересное и актуальное на данный момент. 
+                Это событие имеет высокий рейтинг популярности, положительные отзывы и идеально подходит для вашего досуга.
+              </p>
+              <p className="ai-recommendation-reason">
+                ИИ считает это событие актуальным, потому что оно соответствует вашим интересам, имеет высокую оценку пользователей и проходит в ближайшее время.
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
+
       <section className="active-events-section">
         <div className="section-header">
           <h2 className="section-title">Ближайшие события</h2>

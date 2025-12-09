@@ -24,7 +24,9 @@ async def add_event(
     description: str,
     purchased_count: int,
     seats_total: int,
-    account_id: int,
+)    account_id: int,
+    event_type: str | None = None,
+    message_link: str | None = None,
 ) -> dict:
     slug = generate_slug()
     for _ in range(5):
@@ -41,6 +43,8 @@ async def add_event(
                 purchased_count=purchased_count,
                 seats_total=seats_total,
                 account_id=account_id,
+                event_type=event_type,
+                message_link=message_link,
             )
             return {"slug": slug, "event_id": event_id}
         except SlugAlreadyExists:
@@ -105,6 +109,8 @@ async def list_events_between_dates(start: datetime, end: datetime, limit: int =
             "event_time": event.event_time,
             "price": float(event.price),
             "description": event.description,
+            "event_type": getattr(event, "event_type", None),
+            "message_link": getattr(event, "message_link", None),
             "purchased_count": event.purchased_count,
             "seats_total": event.seats_total,
             "account_id": event.account_id,

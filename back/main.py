@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 from database.db import engine
 from database.models import Base
 from contextlib import asynccontextmanager
-from service import add_event, get_event_by_slug
+from service import add_event as add_event_service, get_event_by_slug as get_event_by_slug_service
 from firebase_auth import login_user, register_user, send_verification_email
 from exceptions import NoUrlFoundException
 
@@ -47,10 +47,8 @@ app = FastAPI(lifespan=lifespan)
 
 
 @app.post("/add_event")
-async def add_event(
-    event: EventCreate
-):
-    slug = await add_event(
+async def create_event(event: EventCreate):
+    slug = await add_event_service(
         long_url=event.long_url,
         name=event.name,
         place=event.place,
@@ -83,7 +81,7 @@ async def verify_email(request: VerifyEmailRequest):
 @app.get("/{slug}")
 async def get_event_by_slug(slug: str):
     try:
-        long_url = await get_event_by_slug(slug=slug)
+        long_url = await get_event_by_slug_service(slug=slug)
     except NoUrlFoundException:
         return HTTPException(status.HTTP_404_NOT_FOUND, detail="...")
     return RedirectResponse(url=long_url, status_code=status.HTTP_302_FOUND)

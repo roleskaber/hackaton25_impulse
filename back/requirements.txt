@@ -1,6 +1,4 @@
-google
-google-api-python-client
-google-auth
-google-auth-httplib2
-google-auth-oauthlib
+fastapi
+pydantic
+asyncpg
 sqlalchemy

@@ -6,6 +6,7 @@ from exceptions import NoUrlFoundException, ShortenerBaseException, SlugAlreadyE
 
 
 async def add_event(
+    long_url: str,
     name: str,
     place: str,
     city: str,
@@ -21,6 +22,7 @@ async def add_event(
         try:
             await add_slug_to_db(
                 slug=slug,
+                long_url=long_url,
                 name=name,
                 place=place,
                 city=city,

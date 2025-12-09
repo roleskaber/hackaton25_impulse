@@ -10,7 +10,7 @@ from service import (
     add_event,
     create_order,
     update_user,
-    get_event_details_by_slug,
+    get_event_details_by_id,
     list_events_between_dates
 )
 from firebase_auth import (
@@ -199,10 +199,10 @@ async def expect_ai(city: str):
         raise HTTPException(status_code=500, detail=f"AI request failed: {e}")
 
 
-@app.get("/{slug}")
-async def get_event_by_slug(slug: str):
+@app.get("/{event_id}")
+async def get_event_by_slug(event_id: int):
     try:
-        event = await get_event_details_by_slug(slug=slug)
+        event = await get_event_details_by_id(event_id=event_id)
     except NoUrlFoundException:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
     return event

@@ -63,9 +63,9 @@ async def get_url_from_db(slug: str) -> str | None:
     return res.long_url
 
 
-async def get_event_from_db(slug: str) -> dict | None:
+async def get_event_from_db(event_id: int) -> dict | None:
     async with new_session() as session:
-        query = select(Event).filter_by(slug=slug)
+        query = select(Event).filter_by(event_id=event_id)
         result = await session.execute(query)
         res: Event | None = result.scalar_one_or_none()
         if not res:
@@ -143,9 +143,7 @@ async def get_all_users_from_db() -> list[User]:
 
 
 async def create_user_in_db(email: str, display_name: str | None = None, phone: str | None = None, role: str = "user") -> User:
-    """Create a new user record. If a user with the same email exists, return it."""
     async with new_session() as session:
-        # Check existing
         query = select(User).filter_by(email=email)
         res = await session.execute(query)
         existing: User | None = res.scalar_one_or_none()
@@ -159,7 +157,6 @@ async def create_user_in_db(email: str, display_name: str | None = None, phone: 
             await session.refresh(user)
             return user
         except SAIntegrityError:
-            # Race: another process inserted the user concurrently; fetch and return it
             await session.rollback()
             res = await session.execute(select(User).filter_by(email=email))
             return res.scalar_one()

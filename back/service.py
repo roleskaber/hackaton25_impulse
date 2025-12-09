@@ -124,8 +124,8 @@ async def get_all_users():
     return await get_all_users_from_db()
 
 
-async def get_event_details_by_slug(slug: str) -> dict:
-    event = await get_event_from_db(slug)
+async def get_event_details_by_id(event_id: int) -> dict:
+    event = await get_event_from_db(event_id)
     if not event:
         raise NoUrlFoundException
     return event

@@ -4,6 +4,7 @@ import FAQ from '../../Components/FAQ/FAQ';
 import EventCard from '../../Components/EventCard/EventCard';
 import CategoryFilter from '../../Components/CategoryFilter/CategoryFilter';
 import { useEvents } from '../../hooks/useEvents';
+import { useCity } from '../../contexts/CityContext';
 
 const afishaCategories = [
   'Кино',
@@ -18,9 +19,11 @@ const afishaCategories = [
 
 function Home({ onNavigate }) {
   const { upcomingEvents, afishaEvents, loading } = useEvents();
+  const { selectedCity } = useCity();
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [selectedAfishaCategories, setSelectedAfishaCategories] = useState([]);
   const [carouselIndex, setCarouselIndex] = useState(0);
+  const [displayedAfishaCount, setDisplayedAfishaCount] = useState(4);
   const activeEventsRef = useRef(null);
   const afishaEventsRef = useRef(null);
 
@@ -41,14 +44,25 @@ function Home({ onNavigate }) {
   }, [upcomingEvents]);
 
   const filteredActiveEvents = useMemo(() => {
-    if (selectedCategories.length === 0) return upcomingEvents;
-    return upcomingEvents.filter(event => {
-      return selectedCategories.some(cat => 
-        event.description?.toLowerCase().includes(cat.toLowerCase()) ||
-        event.name?.toLowerCase().includes(cat.toLowerCase())
-      );
+    let filtered = upcomingEvents;
+    
+    if (selectedCategories.length > 0) {
+      filtered = filtered.filter(event => {
+        return selectedCategories.some(cat => 
+          event.description?.toLowerCase().includes(cat.toLowerCase()) ||
+          event.name?.toLowerCase().includes(cat.toLowerCase())
+        );
+      });
+    }
+    
+    return filtered.sort((a, b) => {
+      const aMatches = a.city === selectedCity;
+      const bMatches = b.city === selectedCity;
+      if (aMatches && !bMatches) return -1;
+      if (!aMatches && bMatches) return 1;
+      return 0;
     });
-  }, [upcomingEvents, selectedCategories]);
+  }, [upcomingEvents, selectedCategories, selectedCity]);
 
   const filteredAfishaEvents = useMemo(() => {
     let filtered = afishaEvents;
@@ -60,8 +74,19 @@ function Home({ onNavigate }) {
         );
       });
     }
-    return filtered;
-  }, [afishaEvents, selectedAfishaCategories]);
+    
+    return filtered.sort((a, b) => {
+      const aMatches = a.city === selectedCity;
+      const bMatches = b.city === selectedCity;
+      if (aMatches && !bMatches) return -1;
+      if (!aMatches && bMatches) return 1;
+      return 0;
+    });
+  }, [afishaEvents, selectedAfishaCategories, selectedCity]);
+
+  useEffect(() => {
+    setDisplayedAfishaCount(4);
+  }, [selectedAfishaCategories]);
 
   const handleCategoryToggle = (category) => {
     setSelectedCategories(prev =>
@@ -95,14 +120,8 @@ function Home({ onNavigate }) {
     }
   };
 
-  const scrollAfishaEvents = (direction) => {
-    if (afishaEventsRef.current) {
-      const scrollAmount = 400;
-      afishaEventsRef.current.scrollBy({
-        left: direction === 'left' ? -scrollAmount : scrollAmount,
-        behavior: 'smooth'
-      });
-    }
+  const handleSeeMore = () => {
+    setDisplayedAfishaCount(prev => prev + 4);
   };
 
   const nextCarousel = () => {
@@ -178,6 +197,64 @@ function Home({ onNavigate }) {
         )}
       </section>
 
+      {upcomingEvents.length > 0 && (
+        <section className="ai-recommendation-section">
+          <div className="ai-recommendation-container">
+            <div className="ai-recommendation-image-wrapper">
+              {upcomingEvents[0].long_url && (upcomingEvents[0].long_url.startsWith('http://') || upcomingEvents[0].long_url.startsWith('https://')) ? (
+                <img 
+                  src={upcomingEvents[0].long_url} 
+                  alt={upcomingEvents[0].name}
+                  className="ai-recommendation-image"
+                  onError={(e) => {
+                    e.target.src = `https://via.placeholder.com/400x300/FF6B35/FFFFFF?text=${encodeURIComponent(upcomingEvents[0].name || 'Event')}`;
+                  }}
+                />
+              ) : (
+                <div className="ai-recommendation-placeholder">
+                  <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#FF6B35" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M2 17L12 22L22 17" stroke="#FF6B35" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M2 12L12 17L22 12" stroke="#FF6B35" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+              )}
+              <h3 className="ai-recommendation-event-title">{upcomingEvents[0].name}</h3>
+              <div className="ai-recommendation-tooltip">
+                <div className="tooltip-content">
+                  <h4>{upcomingEvents[0].name}</h4>
+                  <p>{upcomingEvents[0].description}</p>
+                  <div className="tooltip-details">
+                    <span>Место: {upcomingEvents[0].place}</span>
+                    <span>Город: {upcomingEvents[0].city}</span>
+                    <span>Дата: {new Date(upcomingEvents[0].event_time).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                    <span>Цена: {upcomingEvents[0].price} ₽</span>
+                    <span>Куплено билетов: {upcomingEvents[0].purchased_count}</span>
+                    <span>Свободно мест: {upcomingEvents[0].seats_total - upcomingEvents[0].purchased_count}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="ai-recommendation-content">
+              <div className="ai-recommendation-badge">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" fill="#FF6B35"/>
+                </svg>
+                <span>ИИ рекомендует</span>
+              </div>
+              <h2 className="ai-recommendation-heading">Самое актуальное событие</h2>
+              <p className="ai-recommendation-text">
+                Наш искусственный интеллект проанализировал все доступные события и выбрал это как самое интересное и актуальное на данный момент. 
+                Это событие имеет высокий рейтинг популярности, положительные отзывы и идеально подходит для вашего досуга.
+              </p>
+              <p className="ai-recommendation-reason">
+                ИИ считает это событие актуальным, потому что оно соответствует вашим интересам, имеет высокую оценку пользователей и проходит в ближайшее время.
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
+
       <section className="active-events-section">
         <div className="section-header">
           <h2 className="section-title">Ближайшие события</h2>
@@ -228,47 +305,33 @@ function Home({ onNavigate }) {
         {loading ? (
           <div className="loading-message">Загрузка событий...</div>
         ) : filteredAfishaEvents.length > 0 ? (
-          <div className="events-scroll-container">
-            <button 
-              className="scroll-arrow scroll-left" 
-              onClick={() => scrollAfishaEvents('left')}
-              aria-label="Прокрутить влево"
-            >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path d="M15 18L9 12L15 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
-            <div className="events-scroll" ref={afishaEventsRef}>
-              {filteredAfishaEvents.map(event => (
-                <EventCard
-                  key={event.event_id}
-                  event={event}
-                  onClick={() => handleEventClick(event)}
-                />
-              ))}
+          <>
+            <div className="events-scroll-container">
+              <div className="events-scroll events-scroll-no-scroll" ref={afishaEventsRef}>
+                {filteredAfishaEvents.slice(0, displayedAfishaCount).map(event => (
+                  <EventCard
+                    key={event.event_id}
+                    event={event}
+                    onClick={() => handleEventClick(event)}
+                  />
+                ))}
+              </div>
             </div>
-            <button 
-              className="scroll-arrow scroll-right" 
-              onClick={() => scrollAfishaEvents('right')}
-              aria-label="Прокрутить вправо"
-            >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path d="M9 18L15 12L9 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
-          </div>
+
+            {displayedAfishaCount < filteredAfishaEvents.length && (
+              <div className="see-more-container">
+                <button className="see-more-btn" onClick={handleSeeMore}>
+                  Посмотреть еще
+                  <svg width="24" height="24" viewBox="0 0 25 25" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M13.7407 19.8516L21.377 12.2231M21.377 12.2231L13.7485 4.58683M21.377 12.2231L3.05927 12.2138" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+            )}
+          </>
         ) : (
           <div className="no-events-message">Нет событий по выбранным категориям</div>
         )}
-
-        <div className="see-more-container">
-          <button className="see-more-btn">
-            Посмотреть еще
-            <svg width="24" height="24" viewBox="0 0 25 25" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M13.7407 19.8516L21.377 12.2231M21.377 12.2231L13.7485 4.58683M21.377 12.2231L3.05927 12.2138" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
-        </div>
       </section>
 
       <FAQ />

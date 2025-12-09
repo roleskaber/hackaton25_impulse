@@ -7,6 +7,7 @@ import Header from './Components/Header/Header';
 import FAQ from './Components/FAQ/FAQ';
 import Footer from './Components/Footer/Footer';
 import ToastContainer from './Components/Toast/Toast';
+import { CityProvider } from './contexts/CityContext';
 
 import Home from './Pages/Home/Home';
 import Contact from './Pages/Contact/Contact';
@@ -90,4 +91,8 @@ function App() {
 
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<App />);
+root.render(
+  <CityProvider>
+    <App />
+  </CityProvider>
+);

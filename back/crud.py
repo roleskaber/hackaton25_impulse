@@ -121,4 +121,24 @@ async def update_user_in_db(
         await session.commit()
         await session.refresh(user)
         return user
+
+
+async def get_all_orders_from_db() -> list[Order]:
+    async with new_session() as session:
+        result = await session.execute(select(Order))
+        return list(result.scalars().all())
+
+
+async def get_all_users_from_db_filtered(
+    role: str | None = None,
+    email: str | None = None,
+) -> list[User]:
+    async with new_session() as session:
+        query = select(User)
+        if role:
+            query = query.filter_by(role=role)
+        if email:
+            query = query.filter(User.email.ilike(f"%{email}%"))
+        result = await session.execute(query)
+        return list(result.scalars().all())
     

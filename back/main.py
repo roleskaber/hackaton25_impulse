@@ -1,5 +1,5 @@
 from datetime import datetime
-from fastapi import FastAPI, HTTPException, status, Depends, Header
+from fastapi import FastAPI, HTTPException, status, Depends, Header, Query
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -12,6 +12,7 @@ from service import (
     get_event_by_slug as get_event_by_slug_service,
     create_order as create_order_service,
     get_all_users as get_all_users_service,
+    get_all_orders as get_all_orders_service,
     update_user as update_user_service,
     list_events_between_dates,
 )
@@ -172,8 +173,11 @@ async def create_order(order: OrderCreate):
 
 
 @app.get("/users", dependencies=[Depends(require_api_key)])
-async def get_users():
-    return await get_all_users_service()
+async def get_users(
+    role: str | None = Query(None, description="Фильтр по роли (admin/user)"),
+    email: str | None = Query(None, description="Поиск по email (частичное совпадение)"),
+):
+    return await get_all_users_service(role=role, email=email)
 
 
 @app.patch("/users/{user_id}", dependencies=[Depends(require_api_key)])
@@ -185,4 +189,9 @@ async def update_user(user_id: int, payload: UserUpdate):
         role=payload.role,
     )
     return updated
+
+
+@app.get("/orders", dependencies=[Depends(require_api_key)])
+async def get_orders():
+    return await get_all_orders_service()
 

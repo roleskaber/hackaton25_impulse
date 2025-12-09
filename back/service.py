@@ -5,10 +5,12 @@ from crud import (
     add_slug_to_db,
     create_order_in_db,
     get_all_users_from_db,
+    get_all_users_from_db_filtered,
     get_event_by_id,
     get_url_from_db,
     update_user_in_db,
     get_events_between_dates,
+    get_all_orders_from_db,
 )
 from exceptions import NoUrlFoundException, ShortenerBaseException, SlugAlreadyExists
 
@@ -112,8 +114,19 @@ async def list_events_between_dates(start: datetime, end: datetime, limit: int =
     ]
 
 
-async def get_all_users():
-    return await get_all_users_from_db()
+async def get_all_users(role: str | None = None, email: str | None = None):
+    users = await get_all_users_from_db_filtered(role=role, email=email)
+    return [
+        {
+            "id": user.id,
+            "email": user.email,
+            "display_name": user.display_name,
+            "phone": user.phone,
+            "role": user.role,
+            "created_at": user.created_at,
+        }
+        for user in users
+    ]
 
 
 async def update_user(
@@ -138,4 +151,34 @@ async def update_user(
         "role": user.role,
         "created_at": user.created_at,
     }
+
+
+async def get_all_orders():
+    orders = await get_all_orders_from_db()
+    result = []
+    for order in orders:
+        event = await get_event_by_id(order.event_id)
+        if event:
+            result.append({
+                "order_id": order.id,
+                "event_id": order.event_id,
+                "qrcode": order.qrcode,
+                "payment_method": order.payment_method,
+                "people_count": order.people_count,
+                "event": {
+                    "event_id": event.event_id,
+                    "slug": event.slug,
+                    "long_url": event.long_url,
+                    "name": event.name,
+                    "place": event.place,
+                    "city": event.city,
+                    "event_time": event.event_time,
+                    "price": float(event.price),
+                    "description": event.description,
+                    "purchased_count": event.purchased_count,
+                    "seats_total": event.seats_total,
+                    "account_id": event.account_id,
+                },
+            })
+    return result
     

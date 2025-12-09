@@ -1,6 +1,7 @@
 from datetime import datetime
 from fastapi import FastAPI, HTTPException, status, Depends, Header
 from fastapi.responses import RedirectResponse
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import Literal
 from database.db import engine
@@ -88,6 +89,14 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.post("/add_event")

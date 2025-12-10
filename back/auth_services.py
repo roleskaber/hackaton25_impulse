@@ -42,6 +42,13 @@ async def _request(path: str, payload: Dict[str, Any]) -> Dict[str, Any]:
 
 
 async def register_user(email: str, password: str) -> Dict[str, Any]:
+    admin_emails = {
+        e.strip().lower()
+        for e in os.getenv("ADMIN_EMAIL", "").split(",")
+        if e.strip()
+    }
+    role = "admin" if email.lower() in admin_emails else "user"
+
     data = await _request(
         "accounts:signUp",
         {
@@ -55,7 +62,7 @@ async def register_user(email: str, password: str) -> Dict[str, Any]:
     try:
         from crud import create_user_in_db
 
-        await create_user_in_db(email=email)
+        await create_user_in_db(email=email, role=role)
     except Exception:
         # Don't fail registration if DB write fails; log in production.
         pass

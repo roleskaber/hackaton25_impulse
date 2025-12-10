@@ -60,7 +60,14 @@ export const onAuthStateChange = (callback) => {
 };
 
 const notifyListeners = (user) => {
-  authListeners.forEach(listener => listener(user));
+  // Уведомляем всех слушателей синхронно
+  authListeners.forEach(listener => {
+    try {
+      listener(user);
+    } catch (error) {
+      console.error('Error in auth listener:', error);
+    }
+  });
 };
 
 export const loginUser = async (email, password) => {
@@ -89,6 +96,21 @@ export const loginUser = async (email, password) => {
     
     saveUserToStorage(currentUser);
     notifyListeners(currentUser);
+    
+    // Загружаем профиль пользователя после входа
+    try {
+      const profileData = await getUserProfile();
+      currentUser = {
+        ...currentUser,
+        ...profileData
+      };
+      saveUserToStorage(currentUser);
+      notifyListeners(currentUser);
+    } catch (error) {
+      console.error('Ошибка загрузки профиля после входа:', error);
+      // Продолжаем работу даже если профиль не загрузился
+    }
+    
     return { success: true, user: currentUser };
   } catch (error) {
     return { success: false, error: error.message };
@@ -159,7 +181,14 @@ const updateUserProfileAfterRegistration = async (userData) => {
       
       if (response.ok) {
         const updatedData = await response.json();
-        currentUser = { ...currentUser, ...updatedData };
+        // Маппинг полей бэкенда на фронтенд
+        const mappedData = {
+          name: updatedData.display_name || updatedData.name,
+          username: updatedData.username,
+          email: updatedData.email,
+          profileImage: updatedData.profile_image || updatedData.profileImage,
+        };
+        currentUser = { ...currentUser, ...mappedData };
         saveUserToStorage(currentUser);
         notifyListeners(currentUser);
       } else {
@@ -173,10 +202,64 @@ const updateUserProfileAfterRegistration = async (userData) => {
 };
 
 export const logoutUser = async () => {
+  // Очищаем все данные пользователя
   currentUser = null;
   saveUserToStorage(null);
+  
+  // Уведомляем всех слушателей об изменении состояния
   notifyListeners(null);
+  
+  // Очищаем все ключи localStorage связанные с аутентификацией
+  try {
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
+  } catch (error) {
+    console.error('Error clearing localStorage:', error);
+  }
+  
   return { success: true };
+};
+
+export const getUserProfile = async () => {
+  if (!currentUser || !currentUser.idToken) {
+    throw new Error('Пользователь не авторизован');
+  }
+  
+  try {
+    const response = await fetch(getApiUrl('/users/me'), {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${currentUser.idToken}`,
+        'ngrok-skip-browser-warning': 'true',
+      },
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ detail: 'Ошибка загрузки профиля' }));
+      throw new Error(errorData.detail || 'Ошибка загрузки профиля');
+    }
+    
+    const profileData = await response.json();
+    
+    // Маппинг полей бэкенда на фронтенд
+    const mappedData = {
+      name: profileData.display_name || profileData.name,
+      username: profileData.username,
+      email: profileData.email,
+      profileImage: profileData.profile_image || profileData.profileImage,
+    };
+    
+    currentUser = {
+      ...currentUser,
+      ...mappedData,
+    };
+    
+    saveUserToStorage(currentUser);
+    notifyListeners(currentUser);
+    return mappedData;
+  } catch (error) {
+    throw error;
+  }
 };
 
 export const updateUserProfile = async (profileData) => {
@@ -185,6 +268,63 @@ export const updateUserProfile = async (profileData) => {
   }
   
   try {
+    // Маппинг полей фронтенда на бэкенд
+    // Отправляем только те поля, которые были переданы и не пустые
+    const finalData = {};
+    
+    // Валидация и обработка имени
+    if (profileData.name !== undefined && profileData.name !== null) {
+      const trimmedName = String(profileData.name).trim();
+      if (trimmedName !== '') {
+        // Убеждаемся, что это строка
+        finalData.display_name = String(trimmedName);
+      }
+    }
+    
+    // Обработка username (если нужно)
+    if (profileData.username !== undefined && profileData.username !== null) {
+      const trimmedUsername = String(profileData.username).trim();
+      if (trimmedUsername !== '') {
+        finalData.username = String(trimmedUsername);
+      }
+    }
+    
+    // Обработка profileImage
+    if (profileData.profileImage !== undefined && profileData.profileImage !== null) {
+      const imageValue = String(profileData.profileImage);
+      if (imageValue !== '') {
+        finalData.profile_image = String(imageValue);
+      }
+    }
+    
+    // Проверяем, что есть хотя бы одно поле для обновления
+    if (Object.keys(finalData).length === 0) {
+      throw new Error('Нет данных для обновления');
+    }
+    
+    // Убеждаемся, что все значения - строки (не числа, не объекты)
+    const sanitizedFinalData = {};
+    for (const [key, value] of Object.entries(finalData)) {
+      if (value !== undefined && value !== null && value !== '') {
+        // Гарантируем, что значение - строка
+        const strValue = String(value);
+        if (strValue.trim() !== '') {
+          sanitizedFinalData[key] = strValue.trim();
+        }
+      }
+    }
+    
+    // Проверяем, что есть хотя бы одно поле после санитизации
+    if (Object.keys(sanitizedFinalData).length === 0) {
+      throw new Error('Нет данных для обновления после санитизации');
+    }
+    
+    console.log('Sending profile update:', sanitizedFinalData);
+    console.log('JSON stringified:', JSON.stringify(sanitizedFinalData));
+    console.log('Profile data received:', profileData);
+    console.log('Final data keys:', Object.keys(sanitizedFinalData));
+    console.log('Final data values:', Object.values(sanitizedFinalData));
+    
     const response = await fetch(getApiUrl('/users/me'), {
       method: 'PATCH',
       headers: {
@@ -192,23 +332,68 @@ export const updateUserProfile = async (profileData) => {
         'Authorization': `Bearer ${currentUser.idToken}`,
         'ngrok-skip-browser-warning': 'true',
       },
-      body: JSON.stringify(profileData),
+      body: JSON.stringify(sanitizedFinalData),
     });
     
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ detail: 'Ошибка обновления профиля' }));
-      throw new Error(errorData.detail || 'Ошибка обновления профиля');
+      let errorMessage = 'Ошибка обновления профиля';
+      let errorDetails = null;
+      try {
+        const errorData = await response.json();
+        console.error('Error response:', errorData);
+        console.error('Error detail array:', errorData.detail);
+        console.error('Full error data:', JSON.stringify(errorData, null, 2));
+        errorDetails = errorData;
+        if (errorData.detail) {
+          if (Array.isArray(errorData.detail)) {
+            // Выводим полную информацию об ошибках
+            errorData.detail.forEach((e, index) => {
+              console.error(`Error ${index}:`, JSON.stringify(e, null, 2));
+              console.error(`Error ${index} loc:`, e.loc);
+              console.error(`Error ${index} msg:`, e.msg);
+              console.error(`Error ${index} type:`, e.type);
+              console.error(`Error ${index} input:`, e.input);
+            });
+            errorMessage = errorData.detail.map(e => {
+              if (typeof e === 'string') return e;
+              const field = e.loc ? e.loc.join('.') : 'unknown';
+              const msg = e.msg || e.type || 'Ошибка';
+              const input = e.input !== undefined ? ` (received: ${JSON.stringify(e.input)})` : '';
+              return `${field}: ${msg}${input}`;
+            }).join(', ');
+          } else {
+            errorMessage = errorData.detail;
+          }
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+        }
+      } catch (e) {
+        console.error('Failed to parse error response:', e);
+        // Если не удалось распарсить JSON, используем статус код
+        errorMessage = `Ошибка ${response.status}: ${response.statusText}`;
+      }
+      console.error('Final error message:', errorMessage);
+      throw new Error(errorMessage);
     }
     
     const updatedData = await response.json();
+    
+    // Маппинг полей бэкенда на фронтенд
+    const mappedData = {
+      name: updatedData.display_name || updatedData.name,
+      username: updatedData.username,
+      email: updatedData.email,
+      profileImage: updatedData.profile_image || updatedData.profileImage,
+    };
+    
     currentUser = {
       ...currentUser,
-      ...updatedData,
+      ...mappedData,
     };
     
     saveUserToStorage(currentUser);
     notifyListeners(currentUser);
-    return currentUser;
+    return mappedData;
   } catch (error) {
     throw error;
   }

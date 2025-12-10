@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect, useRef } from 'react';
 import './Profile.scss';
-import { getCurrentUser, onAuthStateChange, updateUserProfile, logoutUser } from '../../services/authService';
+import { getCurrentUser, onAuthStateChange, updateUserProfile, logoutUser, getUserProfile } from '../../services/authService';
 import { showSuccess, showError } from '../../Components/Toast/Toast';
 
 function Profile({ onNavigate }) {
@@ -11,7 +11,6 @@ function Profile({ onNavigate }) {
   const [editing, setEditing] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
-    username: '',
     email: ''
   });
   const [customAvatarDataUrl, setCustomAvatarDataUrl] = useState(null);
@@ -21,22 +20,61 @@ function Profile({ onNavigate }) {
   const profileTabRef = useRef(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChange((user) => {
+    const unsubscribe = onAuthStateChange(async (user) => {
       if (user) {
         setUser(user);
-        setUserData(user);
-        setFormData({
-          name: user.name || '',
-          username: user.username || '',
-          email: user.email || ''
-        });
+        // Используем данные из user (они уже содержат данные профиля после входа)
+        // Если данных нет, пытаемся загрузить с бэкенда
+        if (user.name || user.profileImage) {
+          setUserData(user);
+          setFormData({
+            name: user.name || '',
+            email: user.email || ''
+          });
+        } else {
+          // Загружаем полные данные профиля с бэкенда
+          try {
+            const profileData = await getUserProfile();
+            const fullUserData = {
+              ...user,
+              name: profileData.name || user.name,
+              email: profileData.email || user.email,
+              profileImage: profileData.profileImage || user.profileImage
+            };
+            setUserData(fullUserData);
+            setFormData({
+              name: profileData.name || user.name || '',
+              email: profileData.email || user.email || ''
+            });
+          } catch (error) {
+            console.error('Ошибка загрузки профиля:', error);
+            // Если не удалось загрузить с бэкенда, используем данные из Firebase
+            const fallbackUserData = {
+              ...user,
+              name: user.name || '',
+              email: user.email || '',
+              profileImage: user.profileImage || null
+            };
+            setUserData(fallbackUserData);
+            setFormData({
+              name: user.name || '',
+              email: user.email || ''
+            });
+          }
+        }
         setLoading(false);
       } else {
-        // Если пользователь не авторизован, перенаправляем на страницу входа
+        // Если пользователь не авторизован, очищаем состояние и перенаправляем на страницу входа
+        setUser(null);
+        setUserData(null);
+        setFormData({
+          name: '',
+          email: ''
+        });
+        setLoading(false);
         if (onNavigate) {
           onNavigate('login');
         }
-        setLoading(false);
       }
     });
 
@@ -54,7 +92,6 @@ function Profile({ onNavigate }) {
     setEditing(false);
     setFormData({
       name: userData?.name || '',
-      username: userData?.username || '',
       email: userData?.email || ''
     });
     setCustomAvatarDataUrl(null);
@@ -98,41 +135,62 @@ function Profile({ onNavigate }) {
     }
   };
 
+  const validateName = (name) => {
+    if (!name || !name.trim()) {
+      return 'Имя обязательно для заполнения';
+    }
+    if (name.trim().length < 2) {
+      return 'Имя должно содержать минимум 2 символа';
+    }
+    if (name.trim().length > 50) {
+      return 'Имя слишком длинное (максимум 50 символов)';
+    }
+    if (!/^[a-zA-Zа-яА-ЯёЁ\s-]+$/.test(name.trim())) {
+      return 'Имя может содержать только буквы, пробелы и дефисы';
+    }
+    return '';
+  };
+
   const handleSave = async () => {
     setError('');
     setSuccess('');
+    
+    // Валидация имени
+    const nameError = validateName(formData.name);
+    if (nameError) {
+      setError(nameError);
+      return;
+    }
+
     setLoading(true);
 
     try {
       const updates = {};
 
-      // Обновляем имя
-      if (formData.name !== userData?.name) {
-        updates.name = formData.name;
+      // Обновляем имя (только если оно изменилось и валидно)
+      const trimmedName = formData.name.trim();
+      if (trimmedName !== (userData?.name || '').trim()) {
+        updates.name = trimmedName;
       }
 
-      // Обновляем логин
-      if (formData.username !== userData?.username) {
-        updates.username = formData.username;
-      }
-
-      // Сохраняем аватар как data URL (base64) прямо в Firestore
+      // Сохраняем аватар как data URL (base64)
       if (customAvatarDataUrl) {
-        // customAvatarDataUrl Сѓже содержит полный data URL (например: "data:image/jpeg;base64,...")
         updates.profileImage = customAvatarDataUrl;
       }
 
       // Сохраняем изменения
       if (Object.keys(updates).length > 0) {
-        await updateUserProfile(updates);
+        const updatedProfileData = await updateUserProfile(updates);
 
-        // Обновляем локальное состояние
-        const updatedUserData = { ...userData, ...updates };
+        // Обновляем локальное состояние с данными, полученными с бэкенда
+        const updatedUserData = {
+          ...userData,
+          ...updatedProfileData
+        };
         setUserData(updatedUserData);
         setFormData({
-          name: updatedUserData.name || '',
-          username: updatedUserData.username || '',
-          email: updatedUserData.email || ''
+          name: updatedProfileData.name || updatedUserData.name || '',
+          email: updatedProfileData.email || updatedUserData.email || ''
         });
         setCustomAvatarDataUrl(null);
         setSuccess('Профиль успешно обновлен');
@@ -151,18 +209,30 @@ function Profile({ onNavigate }) {
   const handleLogout = async () => {
     setLoading(true);
     try {
-      const result = await logoutUser();
-      if (result.success) {
+      // Очищаем локальное состояние перед выходом
+      setUser(null);
+      setUserData(null);
+      setFormData({
+        name: '',
+        username: '',
+        email: ''
+      });
+      setCustomAvatarDataUrl(null);
+      
+      // Выполняем выход
+      await logoutUser();
+      
+      // Небольшая задержка для обновления состояния во всех компонентах
+      setTimeout(() => {
+        // После выхода перенаправляем на страницу входа
         if (onNavigate) {
-          onNavigate('home');
+          onNavigate('login');
         }
-      } else {
-        setError(result.error || 'Ошибка при выходе');
-      }
+        setLoading(false);
+      }, 100);
     } catch (err) {
       setError('Ошибка при выходе');
       console.error('Ошибка выхода:', err);
-    } finally {
       setLoading(false);
     }
   };
@@ -247,10 +317,6 @@ function Profile({ onNavigate }) {
                   <span>{userData?.name || 'Не указано'}</span>
                 </div>
                 <div className="info-item">
-                  <label>Логин:</label>
-                  <span>{userData?.username || 'Не указано'}</span>
-                </div>
-                <div className="info-item">
                   <label>Email:</label>
                   <span>{userData?.email || 'Не указано'}</span>
                 </div>
@@ -264,15 +330,6 @@ function Profile({ onNavigate }) {
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     placeholder="Введите имя"
-                  />
-                </div>
-                <div className="form-field">
-                  <label>Логин:</label>
-                  <input
-                    type="text"
-                    value={formData.username}
-                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                    placeholder="Введите логин"
                   />
                 </div>
                 <div className="form-field">

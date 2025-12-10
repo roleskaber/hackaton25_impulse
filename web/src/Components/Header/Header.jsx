@@ -186,13 +186,15 @@ function Header({ onNavigate, currentPage = 'home' }) {
             aria-label={isAuthenticated ? 'Перейти в профиль' : 'Войти в аккаунт'}
             type="button"
           >
-            {isAuthenticated && userData?.profileImage ? (
+            {isAuthenticated ? (
               <>
-                <img 
-                  src={userData.profileImage} 
-                  alt="Profile" 
-                  className="profile-avatar-image"
-                />
+                {userData?.profileImage && (
+                  <img 
+                    src={userData.profileImage} 
+                    alt="Profile" 
+                    className="profile-avatar-image"
+                  />
+                )}
                 <span>Профиль</span>
               </>
             ) : (

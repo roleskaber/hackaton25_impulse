@@ -302,9 +302,10 @@
   flex-direction: column;
   align-items: center;
   padding: 78px 20px 100px;
+  background: transparent;
 
   .greeting-title {
-    color: #FFF;
+    color: var(--color-text-primary);
     text-align: center;
     font-family: Lato, -apple-system, Roboto, Helvetica, sans-serif;
     font-size: 48px;

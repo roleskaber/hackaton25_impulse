@@ -1,6 +1,9 @@
 
 import os
+import io
+from datetime import datetime
 from fastapi import FastAPI, HTTPException, status
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from ai_service import expect_ai
 from database.db import engine, new_session
@@ -10,9 +13,9 @@ from contextlib import asynccontextmanager
 from sqlalchemy import text
 from service import (
     add_event,
-    create_order as service_create_order,
+    create_order,
     update_user,
-    update_order as service_update_order,
+    update_order,
     update_event,
     delete_user,
     send_event_reminder,
@@ -53,13 +56,6 @@ async def lifespan(app: FastAPI):
             """))
             if result.scalar() is None:
                 await conn.execute(text("ALTER TABLE users ADD COLUMN profile_image TEXT"))
-            result_orders_email = await conn.execute(text("""
-                SELECT column_name
-                FROM information_schema.columns
-                WHERE table_name='orders' AND column_name='email'
-            """))
-            if result_orders_email.scalar() is None:
-                await conn.execute(text("ALTER TABLE orders ADD COLUMN email TEXT"))
     except Exception as e:
         print(f"Warning: Could not add columns (they might already exist): {e}")
     admin_email = os.getenv("ADMIN_EMAIL", "")
@@ -138,7 +134,7 @@ async def events_between_dates(payload: EventsBetweenRequest, limit: int = 100):
 
 @app.post("/order")
 async def create_order(order: OrderCreate):
-    return await service_create_order(
+    return await create_order(
         event_id=order.event_id,
         payment_method=order.payment_method,
         people_count=order.people_count,
@@ -162,6 +158,53 @@ async def get_users():
         for u in users
     ]
 
+
+@app.get("/users/export", dependencies=[Depends(require_api_key)])
+async def export_users_xlsx():
+    users = await get_all_users()
+
+    from openpyxl import Workbook
+
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Users"
+
+    headers = [
+        "id",
+        "email",
+        "display_name",
+        "phone",
+        "role",
+        "status",
+        "created_at",
+        "profile_image",
+    ]
+    sheet.append(headers)
+
+    for u in users:
+        sheet.append(
+            [
+                u.id,
+                u.email,
+                u.display_name,
+                u.phone,
+                u.role,
+                getattr(u, "status", None),
+                u.created_at,
+                getattr(u, "profile_image", None),
+            ]
+        )
+
+    buffer = io.BytesIO()
+    workbook.save(buffer)
+    buffer.seek(0)
+
+    filename = f'users_{datetime.utcnow().strftime("%Y%m%d_%H%M%S")}Z.xlsx'
+    return StreamingResponse(
+        buffer,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 @app.get("/users/me")
 async def get_current_user_profile(current_user: User = Depends(get_current_user)):
@@ -258,7 +301,7 @@ async def get_orders():
 
 @app.patch("/orders/{order_id}", dependencies=[Depends(require_api_key)])
 async def patch_order(order_id: int, payload: OrderUpdate):
-    updated = await service_update_order(
+    updated = await update_order(
         order_id=order_id,
         qrcode=payload.qrcode,
         payment_method=payload.payment_method,

@@ -17,6 +17,7 @@ import Contact from './Pages/Contact/Contact';
 import Login from './Pages/Login/Login';
 import Signup from './Pages/Signup/Signup';
 import Profile from './Pages/Profile/Profile';
+import Admin from './Pages/Admin/Admin';
 
 function App() {
   const [currentPage, setCurrentPage] = useState('home');
@@ -78,6 +79,8 @@ function App() {
         return <MyEvents onNavigate={handleNavigate} />;
       case 'messages':
         return <Messages onNavigate={handleNavigate} />;
+      case 'admin':
+        return <Admin onNavigate={handleNavigate} />;
       default:
         return (
           <>

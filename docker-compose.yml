@@ -25,5 +25,12 @@ services:
       - "8001:8000"
     volumes:
       - ./back:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 volumes:
   postgres_data:

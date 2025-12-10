@@ -7,6 +7,7 @@ from fastapi import HTTPException, status
 from dotenv import load_dotenv
 
 from fastapi import Header
+import random
 
 load_dotenv('.env')
 
@@ -73,14 +74,27 @@ async def login_user(email: str, password: str) -> Dict[str, Any]:
     )
 
 
-async def send_verification_email(id_token: str) -> Dict[str, Any]:
-    return await _request(
+def _generate_code_with_digit_sum(target_sum: int = 25, length: int = 6) -> str:
+    while True:
+        code_digits = [random.randint(0, 9) for _ in range(length)]
+        if sum(code_digits) == target_sum and code_digits[0] != 0:
+            return "".join(str(d) for d in code_digits)
+
+
+async def send_verification_email(email: str, password: str) -> Dict[str, Any]:
+    login_data = await login_user(email=email, password=password)
+    verification = await _request(
         "accounts:sendOobCode",
         {
             "requestType": "VERIFY_EMAIL",
-            "idToken": id_token,
+            "idToken": login_data["idToken"],
         },
     )
+    code = _generate_code_with_digit_sum()
+    return {
+        "verification": verification,
+        "code": code,
+    }
 
 
 async def send_password_reset_email(email: str) -> Dict[str, Any]:

@@ -10,6 +10,7 @@ import ToastContainer from './Components/Toast/Toast';
 import { CityProvider } from './contexts/CityContext';
 import EventDetail from './Pages/EventDetail/EventDetail';
 import MyEvents from './Pages/MyEvents/MyEvents';
+import Messages from './Pages/Messages/Messages';
 
 import Home from './Pages/Home/Home';
 import Contact from './Pages/Contact/Contact';
@@ -75,6 +76,8 @@ function App() {
         return <EventDetail onNavigate={handleNavigate} eventId={pageOptions.eventId} />;
       case 'my-events':
         return <MyEvents onNavigate={handleNavigate} />;
+      case 'messages':
+        return <Messages onNavigate={handleNavigate} />;
       default:
         return (
           <>

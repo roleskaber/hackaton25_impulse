@@ -1,3 +1,8 @@
+import os
+import smtplib
+import asyncio
+from email.message import EmailMessage
+from urllib.parse import quote_plus
 from datetime import datetime, timezone
 from shortener import generate_slug
 from crud import (
@@ -59,20 +64,67 @@ async def get_event_by_slug(
     return url
 
 
+def _generate_qr_link(data: str, size: str = "300x300") -> str:
+    """Generate a QR code image link using an external service."""
+    encoded = quote_plus(data)
+    return f"https://api.qrserver.com/v1/create-qr-code/?size={size}&data={encoded}"
+
+
+async def _send_email(to_email: str, subject: str, body: str):
+    host = os.getenv("SMTP_HOST")
+    port = int(os.getenv("SMTP_PORT", "587"))
+    user = os.getenv("SMTP_USER")
+    password = os.getenv("SMTP_PASSWORD")
+    from_email = os.getenv("SMTP_FROM", user or "")
+    use_tls = os.getenv("SMTP_USE_TLS", "true").lower() == "true"
+
+    if not host or not to_email:
+        raise RuntimeError("SMTP is not configured")
+
+    msg = EmailMessage()
+    msg["From"] = from_email
+    msg["To"] = to_email
+    msg["Subject"] = subject
+    msg.set_content(body)
+
+    def _sync_send():
+        with smtplib.SMTP(host, port, timeout=10) as server:
+            if use_tls:
+                server.starttls()
+            if user and password:
+                server.login(user, password)
+            server.send_message(msg)
+
+    await asyncio.to_thread(_sync_send)
+
+
 async def create_order(
     event_id: int,
-    qrcode: str,
     payment_method: str,
     people_count: int,
+    email: str,
 ):
     event = await get_event_by_id(event_id)
     if not event:
         raise NoUrlFoundException
+    qr_link = _generate_qr_link(event.long_url)
     order_id = await create_order_in_db(
         event_id=event_id,
-        qrcode=qrcode,
+        qrcode=qr_link,
         payment_method=payment_method,
         people_count=people_count,
+    )
+    await _send_email(
+        to_email=email,
+        subject=f"Ваш билет на «{event.name}»",
+        body=(
+            f"Спасибо за заказ #{order_id}!\n"
+            f"Событие: {event.name}\n"
+            f"Место: {event.place}, {event.city}\n"
+            f"Дата и время: {event.event_time}\n"
+            f"Ссылка на событие: {event.long_url}\n"
+            f"QR-код для входа: {qr_link}"
+        ),
     )
     return {
         "order_id": order_id,

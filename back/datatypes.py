@@ -19,9 +19,9 @@ class EventCreate(BaseModel):
 
 class OrderCreate(BaseModel):
     event_id: int = Field(..., description="ID события")
-    qrcode: str = Field(..., description="QR-код заказа")
     payment_method: str = Field(..., description="Способ оплаты")
     people_count: int = Field(..., gt=0, description="Количество человек")
+    email: str = Field(..., description="Email пользователя для отправки билета")
 
 
 class UserUpdate(BaseModel):

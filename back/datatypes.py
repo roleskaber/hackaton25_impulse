@@ -53,6 +53,7 @@ class UserUpdate(BaseModel):
     display_name: str | None = Field(None, description="Имя пользователя")
     phone: str | None = Field(None, description="Телефон пользователя")
     role: Literal["admin", "user"] | None = Field(None, description="Роль пользователя")
+    profile_image: str | None = Field(None, description="URL изображения профиля")
     status: Literal["active", "deleted"] | None = Field(None, description="Статус пользователя")
 
 

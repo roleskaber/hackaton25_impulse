@@ -166,13 +166,15 @@ function Header({ onNavigate, currentPage = 'home' }) {
         </div>
 
         <div className="header-actions">
-          <button
-            className="header-action-btn achievements-btn"
-            onClick={() => handleProtectedNavigate('achievements')}
-            type="button"
-          >
-            Достижения
-          </button>
+          {userData?.role === 'admin' && (
+            <button
+              className="header-action-btn achievements-btn"
+              onClick={() => handleProtectedNavigate('achievements')}
+              type="button"
+            >
+              Админ
+            </button>
+          )}
           <button
             className="header-action-btn my-events-btn"
             onClick={() => handleProtectedNavigate('my-events')}
@@ -186,13 +188,15 @@ function Header({ onNavigate, currentPage = 'home' }) {
             aria-label={isAuthenticated ? 'Перейти в профиль' : 'Войти в аккаунт'}
             type="button"
           >
-            {isAuthenticated && userData?.profileImage ? (
+            {isAuthenticated ? (
               <>
-                <img 
-                  src={userData.profileImage} 
-                  alt="Profile" 
-                  className="profile-avatar-image"
-                />
+                {userData?.profileImage && (
+                  <img 
+                    src={userData.profileImage} 
+                    alt="Profile" 
+                    className="profile-avatar-image"
+                  />
+                )}
                 <span>Профиль</span>
               </>
             ) : (
@@ -224,10 +228,12 @@ function Header({ onNavigate, currentPage = 'home' }) {
             <span>Мои события</span>
             <span className="mobile-nav-glow" aria-hidden="true" />
           </button>
-          <button className="mobile-nav-item" onClick={() => handleProtectedNavigate('achievements')} type="button">
-            <span>Достижения</span>
-            <span className="mobile-nav-glow" aria-hidden="true" />
-          </button>
+          {userData?.role === 'admin' && (
+            <button className="mobile-nav-item" onClick={() => handleProtectedNavigate('achievements')} type="button">
+              <span>Админ</span>
+              <span className="mobile-nav-glow" aria-hidden="true" />
+            </button>
+          )}
           <button className="mobile-nav-item" onClick={handleLoginClick} type="button">
             <span>{isAuthenticated ? 'Профиль' : 'Войти'}</span>
             <span className="mobile-nav-glow" aria-hidden="true" />

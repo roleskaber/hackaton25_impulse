@@ -21,6 +21,14 @@ from crud import (
     get_events_between_dates,
 )
 from exceptions import NoUrlFoundException, SlugAlreadyExists
+from mail_services import (
+    send_ticket_email,
+    notify_organizer_confirm,
+    notify_organizer_cancel,
+    notify_event_updated,
+    notify_event_created,
+    admin_emails,
+)
 
 async def add_event(
     long_url: str,
@@ -58,6 +66,20 @@ async def add_event(
                 event_type=event_type,
                 message_link=message_link,
             )
+            # Notify admins/organizers about creation
+            for email in admin_emails():
+                await notify_event_created(
+                    event=type("E", (), {
+                        "name": name,
+                        "city": city,
+                        "place": place,
+                        "event_time": event_time,
+                        "event_end_time": event_end_time,
+                        "long_url": long_url,
+                        "description": description,
+                    })(),
+                    recipients=[email],
+                )
             return {"slug": slug, "event_id": event_id}
         except SlugAlreadyExists:
             continue
@@ -79,34 +101,6 @@ def _generate_qr_link(data: str, size: str = "300x300") -> str:
     return f"https://api.qrserver.com/v1/create-qr-code/?size={size}&data={encoded}"
 
 
-async def _send_email(to_email: str, subject: str, body: str):
-    host = os.getenv("SMTP_HOST")
-    port = int(os.getenv("SMTP_PORT", "587"))
-    user = os.getenv("SMTP_USER")
-    password = os.getenv("SMTP_PASSWORD")
-    from_email = os.getenv("SMTP_FROM", user or "")
-    use_tls = os.getenv("SMTP_USE_TLS", "true").lower() == "true"
-
-    if not host or not to_email:
-        raise RuntimeError("SMTP is not configured")
-
-    msg = EmailMessage()
-    msg["From"] = from_email
-    msg["To"] = to_email
-    msg["Subject"] = subject
-    msg.set_content(body)
-
-    def _sync_send():
-        with smtplib.SMTP(host, port, timeout=10) as server:
-            if use_tls:
-                server.starttls()
-            if user and password:
-                server.login(user, password)
-            server.send_message(msg)
-
-    await asyncio.to_thread(_sync_send)
-
-
 async def create_order(
     event_id: int,
     payment_method: str,
@@ -124,18 +118,9 @@ async def create_order(
         people_count=people_count,
         email=email,
     )
-    await _send_email(
-        to_email=email,
-        subject=f"Ваш билет на «{event.name}»",
-        body=(
-            f"Спасибо за заказ #{order_id}!\n"
-            f"Событие: {event.name}\n"
-            f"Место: {event.place}, {event.city}\n"
-            f"Дата и время: {event.event_time}\n"
-            f"Ссылка на событие: {event.long_url}\n"
-            f"QR-код для входа: {qr_link}"
-        ),
-    )
+    await send_ticket_email(email=email, event=event, order_id=order_id, qr_link=qr_link)
+    for org_email in admin_emails():
+        await notify_organizer_confirm(event=event, organizer_email=org_email, participant_email=email)
     return {
         "order_id": order_id,
         "event": {
@@ -313,18 +298,7 @@ async def update_event(
 
     participant_emails = await get_order_emails_by_event(event_id)
     if participant_emails:
-        subject = f"Обновление события «{event.name}»"
-        body = (
-            f"Событие обновлено.\n"
-            f"Название: {event.name}\n"
-            f"Место: {event.place}, {event.city}\n"
-            f"Дата начала: {event.event_time}\n"
-            f"Дата окончания: {event.event_end_time}\n"
-            f"Описание: {event.description}\n"
-            f"Ссылка: {event.long_url}"
-        )
-        for email in set(participant_emails):
-            await _send_email(to_email=email, subject=subject, body=body)
+        await notify_event_updated(event=event, participants=participant_emails)
 
     return {
         "event_id": event.event_id,

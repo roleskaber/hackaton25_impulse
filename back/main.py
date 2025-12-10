@@ -12,6 +12,7 @@ from service import (
     update_user,
     update_order,
     update_event,
+    delete_user,
     get_event_details_by_id,
     list_events_between_dates,
     get_all_orders,
@@ -120,6 +121,7 @@ async def get_users():
             "display_name": u.display_name,
             "phone": u.phone,
             "role": u.role,
+            "status": getattr(u, "status", None),
             "created_at": u.created_at,
         }
         for u in users
@@ -133,8 +135,14 @@ async def update_user(user_id: int, payload: UserUpdate):
         display_name=payload.display_name,
         phone=payload.phone,
         role=payload.role,
+        status=payload.status,
     )
     return updated
+
+
+@app.delete("/users/{user_id}", dependencies=[Depends(require_api_key)])
+async def delete_user_route(user_id: int):
+    return await delete_user(user_id)
 
 
 @app.patch("/events/{event_id}", dependencies=[Depends(require_api_key)])

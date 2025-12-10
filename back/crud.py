@@ -167,7 +167,7 @@ async def create_user_in_db(email: str, display_name: str | None = None, phone: 
         if existing:
             return existing
 
-        user = User(email=email, display_name=display_name, phone=phone, role=role)
+        user = User(email=email, display_name=display_name, phone=phone, role=role, status="active")
         session.add(user)
         try:
             await session.commit()
@@ -184,6 +184,7 @@ async def update_user_in_db(
     display_name: str | None = None,
     phone: str | None = None,
     role: str | None = None,
+    status: str | None = None,
 ) -> User | None:
     async with new_session() as session:
         query = select(User).filter_by(id=user_id)
@@ -197,6 +198,21 @@ async def update_user_in_db(
             user.phone = phone
         if role is not None:
             user.role = role
+        if status is not None:
+            user.status = status
+        await session.commit()
+        await session.refresh(user)
+        return user
+
+
+async def soft_delete_user_in_db(user_id: int) -> User | None:
+    async with new_session() as session:
+        query = select(User).filter_by(id=user_id)
+        result = await session.execute(query)
+        user = result.scalar_one_or_none()
+        if not user:
+            return None
+        user.status = "deleted"
         await session.commit()
         await session.refresh(user)
         return user

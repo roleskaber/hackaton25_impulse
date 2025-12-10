@@ -15,6 +15,7 @@ from crud import (
     get_event_from_db,
     update_user_in_db,
     update_order_in_db,
+    soft_delete_user_in_db,
     update_event_in_db,
     get_order_emails_by_event,
     get_events_between_dates,
@@ -209,12 +210,14 @@ async def update_user(
     display_name: str | None = None,
     phone: str | None = None,
     role: str | None = None,
+    status: str | None = None,
 ):
     user = await update_user_in_db(
         user_id=user_id,
         display_name=display_name,
         phone=phone,
         role=role,
+        status=status,
     )
     if not user:
         raise NoUrlFoundException  # reuse for 404
@@ -224,6 +227,7 @@ async def update_user(
         "display_name": user.display_name,
         "phone": user.phone,
         "role": user.role,
+        "status": user.status,
         "created_at": user.created_at,
     }
 
@@ -250,6 +254,13 @@ async def update_order(
         "people_count": order.people_count,
         "email": order.email,
     }
+
+
+async def delete_user(user_id: int):
+    user = await soft_delete_user_in_db(user_id)
+    if not user:
+        raise NoUrlFoundException
+    return {"success": True}
 
 
 def _compute_status(end_time: datetime | None) -> str:

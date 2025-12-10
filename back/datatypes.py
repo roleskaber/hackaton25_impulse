@@ -53,6 +53,11 @@ class UserUpdate(BaseModel):
     display_name: str | None = Field(None, description="Имя пользователя")
     phone: str | None = Field(None, description="Телефон пользователя")
     role: Literal["admin", "user"] | None = Field(None, description="Роль пользователя")
+    status: Literal["active", "deleted"] | None = Field(None, description="Статус пользователя")
+
+
+class UserDeleteResponse(BaseModel):
+    success: bool = Field(..., description="Флаг успеха операции удаления пользователя")
 
 
 class RegisterRequest(BaseModel):

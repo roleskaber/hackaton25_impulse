@@ -41,7 +41,8 @@ class LoginRequest(BaseModel):
 
 
 class VerifyEmailRequest(BaseModel):
-    id_token: str = Field(..., description="idToken из Firebase для подтверждения почты")
+    email: str = Field(..., description="Почта пользователя")
+    password: str = Field(..., description="Пароль для подтверждения почты")
 
 
 class PasswordResetRequest(BaseModel):

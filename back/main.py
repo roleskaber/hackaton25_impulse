@@ -1,4 +1,5 @@
 
+import os
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from ai_service import expect_ai
@@ -6,12 +7,18 @@ from database.db import engine, new_session
 from database.models import Base, User, Event
 from sqlalchemy import select
 from contextlib import asynccontextmanager
+from sqlalchemy import text
 from service import (
     add_event,
     create_order,
     update_user,
+    update_order,
+    update_event,
+    delete_user,
     get_event_details_by_id,
     list_events_between_dates,
+    get_all_orders,
+    get_all_users,
     get_preview
 )
 from auth_services import (
@@ -27,17 +34,16 @@ from fastapi import Depends
 from datatypes import *
 from dependencies import get_current_user
 from crud import get_user_by_email, update_user_in_db
+from crud import ensure_admin_user
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     async with engine.begin() as connection: 
        await connection.run_sync(Base.metadata.create_all)
-    # Добавляем недостающие колонки если их нет (отдельная транзакция)
-    from sqlalchemy import text
+    
     try:
         async with engine.begin() as conn:
-            # Проверяем и добавляем колонку profile_image
             result = await conn.execute(text("""
                 SELECT column_name 
                 FROM information_schema.columns 
@@ -47,6 +53,9 @@ async def lifespan(app: FastAPI):
                 await conn.execute(text("ALTER TABLE users ADD COLUMN profile_image TEXT"))
     except Exception as e:
         print(f"Warning: Could not add columns (they might already exist): {e}")
+    admin_email = os.getenv("ADMIN_EMAIL", "")
+    if admin_email:
+        await ensure_admin_user(admin_email)
     yield
 
 
@@ -69,6 +78,8 @@ async def create_event(event: EventCreate):
         place=event.place,
         city=event.city,
         event_time=event.event_time,
+        event_end_time=event.event_end_time,
+        status=event.status,
         price=event.price,
         description=event.description,
         event_type=event.event_type,
@@ -120,28 +131,27 @@ async def events_between_dates(payload: EventsBetweenRequest, limit: int = 100):
 async def create_order(order: OrderCreate):
     return await create_order(
         event_id=order.event_id,
-        qrcode=order.qrcode,
         payment_method=order.payment_method,
         people_count=order.people_count,
+        email=order.email,
     )
 
 
 @app.get("/users", dependencies=[Depends(require_api_key)])
 async def get_users():
-    async with new_session() as session:
-        result = await session.execute(select(User))
-        users = result.scalars().all()
-        return [
-            {
-                "id": u.id,
-                "email": u.email,
-                "display_name": u.display_name,
-                "phone": u.phone,
-                "role": u.role,
-                "created_at": u.created_at,
-            }
-            for u in users
-        ]
+    users = await get_all_users()
+    return [
+        {
+            "id": u.id,
+            "email": u.email,
+            "display_name": u.display_name,
+            "phone": u.phone,
+            "role": u.role,
+            "status": getattr(u, "status", None),
+            "created_at": u.created_at,
+        }
+        for u in users
+    ]
 
 
 @app.get("/users/me")
@@ -190,6 +200,60 @@ async def update_user_by_id(user_id: int, payload: UserUpdate):
         display_name=payload.display_name,
         phone=payload.phone,
         role=payload.role,
+        status=payload.status,
+    )
+    return updated
+
+
+@app.delete("/users/{user_id}", dependencies=[Depends(require_api_key)])
+async def delete_user_route(user_id: int):
+    return await delete_user(user_id)
+
+
+@app.patch("/events/{event_id}", dependencies=[Depends(require_api_key)])
+async def patch_event(event_id: int, payload: EventUpdate):
+    updated = await update_event(
+        event_id=event_id,
+        long_url=payload.long_url,
+        name=payload.name,
+        place=payload.place,
+        city=payload.city,
+        event_time=payload.event_time,
+        event_end_time=payload.event_end_time,
+        status=payload.status,
+        price=payload.price,
+        description=payload.description,
+        event_type=payload.event_type,
+        message_link=payload.message_link,
+        purchased_count=payload.purchased_count,
+        seats_total=payload.seats_total,
+        account_id=payload.account_id,
+    )
+    return updated
+
+
+@app.get("/orders", dependencies=[Depends(require_api_key)])
+async def get_orders():
+    orders = await get_all_orders()
+    return [
+        {
+            "id": o.id,
+            "event_id": o.event_id,
+            "qrcode": o.qrcode,
+            "payment_method": o.payment_method,
+            "people_count": o.people_count,
+        }
+        for o in orders
+    ]
+
+
+@app.patch("/orders/{order_id}", dependencies=[Depends(require_api_key)])
+async def patch_order(order_id: int, payload: OrderUpdate):
+    updated = await update_order(
+        order_id=order_id,
+        qrcode=payload.qrcode,
+        payment_method=payload.payment_method,
+        people_count=payload.people_count,
     )
     return updated
 

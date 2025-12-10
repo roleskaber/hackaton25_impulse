@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 
 from fastapi import Header
 import random
-
+from crud import create_user_in_db
 load_dotenv('.env')
 
 def require_api_key(x_api_key: str = Header(..., alias="X-API-KEY")):
@@ -42,6 +42,13 @@ async def _request(path: str, payload: Dict[str, Any]) -> Dict[str, Any]:
 
 
 async def register_user(email: str, password: str) -> Dict[str, Any]:
+    admin_emails = {
+        e.strip().lower()
+        for e in os.getenv("ADMIN_EMAIL", "").split(",")
+        if e.strip()
+    }
+    role = "admin" if email.lower() in admin_emails else "user"
+
     data = await _request(
         "accounts:signUp",
         {
@@ -51,6 +58,12 @@ async def register_user(email: str, password: str) -> Dict[str, Any]:
         },
     )
     await send_verification_email(data["idToken"])
+    try:
+        
+        await create_user_in_db(email=email, role=role)
+    except Exception:
+        pass
+
     return data
 
 

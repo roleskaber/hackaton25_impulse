@@ -16,6 +16,8 @@ class Event(Base):
     place: Mapped[str] = mapped_column(String(255), nullable=False)
     city: Mapped[str] = mapped_column(String(255), nullable=False)
     event_time: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    event_end_time: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="scheduled")
     price: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)
     event_type: Mapped[str] = mapped_column(String(100), nullable=True)
@@ -33,6 +35,7 @@ class Order(Base):
     qrcode: Mapped[str] = mapped_column(Text, nullable=False)
     payment_method: Mapped[str] = mapped_column(String(50), nullable=False)
     people_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    email: Mapped[str] = mapped_column(String(255), nullable=False)
 
 
 class User(Base):

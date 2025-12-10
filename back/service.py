@@ -15,6 +15,8 @@ from crud import (
     get_event_from_db,
     update_user_in_db,
     update_order_in_db,
+    update_event_in_db,
+    get_order_emails_by_event,
     get_events_between_dates,
 )
 from exceptions import NoUrlFoundException, SlugAlreadyExists
@@ -25,6 +27,8 @@ async def add_event(
     place: str,
     city: str,
     event_time: datetime,
+    event_end_time: datetime | None,
+    status: str | None,
     price: float,
     description: str,
     purchased_count: int,
@@ -43,6 +47,8 @@ async def add_event(
                 place=place,
                 city=city,
                 event_time=event_time,
+                event_end_time=event_end_time,
+                status=status,
                 price=price,
                 description=description,
                 purchased_count=purchased_count,
@@ -115,6 +121,7 @@ async def create_order(
         qrcode=qr_link,
         payment_method=payment_method,
         people_count=people_count,
+        email=email,
     )
     await _send_email(
         to_email=email,
@@ -168,6 +175,8 @@ async def list_events_between_dates(start: datetime, end: datetime, limit: int =
             "place": event.place,
             "city": event.city,
             "event_time": event.event_time,
+            "event_end_time": getattr(event, "event_end_time", None),
+            "status": getattr(event, "status", None),
             "price": float(event.price),
             "description": event.description,
             "event_type": getattr(event, "event_type", None),
@@ -239,5 +248,89 @@ async def update_order(
         "qrcode": order.qrcode,
         "payment_method": order.payment_method,
         "people_count": order.people_count,
+        "email": order.email,
+    }
+
+
+def _compute_status(end_time: datetime | None) -> str:
+    if end_time is None:
+        return "scheduled"
+    now = datetime.utcnow()
+    naive_end = end_time.replace(tzinfo=None)
+    return "finished" if naive_end < now else "scheduled"
+
+
+async def update_event(
+    event_id: int,
+    long_url: str | None = None,
+    name: str | None = None,
+    place: str | None = None,
+    city: str | None = None,
+    event_time: datetime | None = None,
+    event_end_time: datetime | None = None,
+    status: str | None = None,
+    price: float | None = None,
+    description: str | None = None,
+    event_type: str | None = None,
+    message_link: str | None = None,
+    purchased_count: int | None = None,
+    seats_total: int | None = None,
+    account_id: int | None = None,
+):
+    auto_status = _compute_status(event_end_time) if event_end_time is not None else None
+    new_status = auto_status or status
+
+    event = await update_event_in_db(
+        event_id=event_id,
+        long_url=long_url,
+        name=name,
+        place=place,
+        city=city,
+        event_time=event_time,
+        event_end_time=event_end_time,
+        status=new_status,
+        price=price,
+        description=description,
+        event_type=event_type,
+        message_link=message_link,
+        purchased_count=purchased_count,
+        seats_total=seats_total,
+        account_id=account_id,
+    )
+    if not event:
+        raise NoUrlFoundException
+
+    participant_emails = await get_order_emails_by_event(event_id)
+    if participant_emails:
+        subject = f"Обновление события «{event.name}»"
+        body = (
+            f"Событие обновлено.\n"
+            f"Название: {event.name}\n"
+            f"Место: {event.place}, {event.city}\n"
+            f"Дата начала: {event.event_time}\n"
+            f"Дата окончания: {event.event_end_time}\n"
+            f"Описание: {event.description}\n"
+            f"Ссылка: {event.long_url}"
+        )
+        for email in set(participant_emails):
+            await _send_email(to_email=email, subject=subject, body=body)
+
+    return {
+        "event_id": event.event_id,
+        "slug": event.slug,
+        "long_url": event.long_url,
+        "name": event.name,
+        "place": event.place,
+        "city": event.city,
+        "event_time": event.event_time,
+        "event_end_time": event.event_end_time,
+        "status": event.status,
+        "price": float(event.price),
+        "description": event.description,
+        "event_type": event.event_type,
+        "message_link": event.message_link,
+        "purchased_count": event.purchased_count,
+        "seats_total": event.seats_total,
+        "account_id": event.account_id,
     }
     

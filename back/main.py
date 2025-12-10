@@ -12,6 +12,7 @@ from service import (
     create_order,
     update_user,
     update_order,
+    update_event,
     get_event_details_by_id,
     list_events_between_dates,
     get_all_orders,
@@ -56,6 +57,8 @@ async def create_event(event: EventCreate):
         place=event.place,
         city=event.city,
         event_time=event.event_time,
+        event_end_time=event.event_end_time,
+        status=event.status,
         price=event.price,
         description=event.description,
         event_type=event.event_type,
@@ -130,6 +133,28 @@ async def update_user(user_id: int, payload: UserUpdate):
         display_name=payload.display_name,
         phone=payload.phone,
         role=payload.role,
+    )
+    return updated
+
+
+@app.patch("/events/{event_id}", dependencies=[Depends(require_api_key)])
+async def patch_event(event_id: int, payload: EventUpdate):
+    updated = await update_event(
+        event_id=event_id,
+        long_url=payload.long_url,
+        name=payload.name,
+        place=payload.place,
+        city=payload.city,
+        event_time=payload.event_time,
+        event_end_time=payload.event_end_time,
+        status=payload.status,
+        price=payload.price,
+        description=payload.description,
+        event_type=payload.event_type,
+        message_link=payload.message_link,
+        purchased_count=payload.purchased_count,
+        seats_total=payload.seats_total,
+        account_id=payload.account_id,
     )
     return updated
 

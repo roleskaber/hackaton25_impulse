@@ -8,6 +8,8 @@ import FAQ from './Components/FAQ/FAQ';
 import Footer from './Components/Footer/Footer';
 import ToastContainer from './Components/Toast/Toast';
 import { CityProvider } from './contexts/CityContext';
+import EventDetail from './Pages/EventDetail/EventDetail';
+import MyEvents from './Pages/MyEvents/MyEvents';
 
 import Home from './Pages/Home/Home';
 import Contact from './Pages/Contact/Contact';
@@ -17,10 +19,12 @@ import Profile from './Pages/Profile/Profile';
 
 function App() {
   const [currentPage, setCurrentPage] = useState('home');
+  const [pageOptions, setPageOptions] = useState({});
 
   const handleNavigate = (page, targetId, options = {}) => {
     const wasDifferentPage = currentPage !== page;
     setCurrentPage(page);
+    setPageOptions(options || {});
 
     if (!targetId) {
       setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 50);
@@ -67,6 +71,10 @@ function App() {
         return <Signup onNavigate={handleNavigate} />;
       case 'profile':
         return <Profile onNavigate={handleNavigate} />;
+      case 'event-detail':
+        return <EventDetail onNavigate={handleNavigate} eventId={pageOptions.eventId} />;
+      case 'my-events':
+        return <MyEvents onNavigate={handleNavigate} />;
       default:
         return (
           <>

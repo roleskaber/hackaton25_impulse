@@ -47,3 +47,56 @@ export const getAfishaEvents = async (limit = 10) => {
   return await getEventsBetweenDates(start, end, limit);
 };
 
+export const getEventById = async (eventId) => {
+  const response = await fetch(getApiUrl(`/events/get/${eventId}`), {
+    headers: {
+      'ngrok-skip-browser-warning': 'true',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('Не удалось загрузить событие');
+  }
+
+  return await response.json();
+};
+
+export const createEventOrder = async ({ eventId, email, peopleCount = 1, paymentMethod = 'online' }) => {
+  try {
+    const response = await fetch(getApiUrl('/order'), {
+      method: 'POST',
+      mode: 'cors',
+      headers: {
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
+      },
+      body: JSON.stringify({
+        event_id: eventId,
+        payment_method: paymentMethod,
+        people_count: peopleCount,
+        email,
+      }),
+    });
+
+    if (!response.ok) {
+      let detail = 'Не удалось подтвердить участие';
+      try {
+        const err = await response.json();
+        if (err?.detail) {
+          detail = Array.isArray(err.detail) ? err.detail.map((d) => d.msg || d).join(', ') : err.detail;
+        }
+      } catch (e) {
+        /* ignore parse error */
+      }
+      throw new Error(detail);
+    }
+
+    return await response.json();
+  } catch (error) {
+    if (error?.message?.includes('Failed to fetch')) {
+      throw new Error('Не удалось связаться с сервером. Проверьте REACT_APP_BASE_URL и доступность API.');
+    }
+    throw error;
+  }
+};
+

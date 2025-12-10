@@ -1,6 +1,9 @@
 
 import os
+import io
+from datetime import datetime
 from fastapi import FastAPI, HTTPException, status
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from ai_service import expect_ai
 from database.db import engine, new_session
@@ -15,6 +18,8 @@ from service import (
     update_order,
     update_event,
     delete_user,
+    send_event_reminder,
+    send_event_created_broadcast,
     get_event_details_by_id,
     list_events_between_dates,
     get_all_orders,
@@ -154,6 +159,53 @@ async def get_users():
     ]
 
 
+@app.get("/users/export", dependencies=[Depends(require_api_key)])
+async def export_users_xlsx():
+    users = await get_all_users()
+
+    from openpyxl import Workbook
+
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Users"
+
+    headers = [
+        "id",
+        "email",
+        "display_name",
+        "phone",
+        "role",
+        "status",
+        "created_at",
+        "profile_image",
+    ]
+    sheet.append(headers)
+
+    for u in users:
+        sheet.append(
+            [
+                u.id,
+                u.email,
+                u.display_name,
+                u.phone,
+                u.role,
+                getattr(u, "status", None),
+                u.created_at,
+                getattr(u, "profile_image", None),
+            ]
+        )
+
+    buffer = io.BytesIO()
+    workbook.save(buffer)
+    buffer.seek(0)
+
+    filename = f'users_{datetime.utcnow().strftime("%Y%m%d_%H%M%S")}Z.xlsx'
+    return StreamingResponse(
+        buffer,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
 @app.get("/users/me")
 async def get_current_user_profile(current_user: User = Depends(get_current_user)):
     return {
@@ -256,6 +308,16 @@ async def patch_order(order_id: int, payload: OrderUpdate):
         people_count=payload.people_count,
     )
     return updated
+
+
+@app.post("/events/{event_id}/notify/reminder", dependencies=[Depends(require_api_key)])
+async def trigger_event_reminder(event_id: int):
+    return await send_event_reminder(event_id)
+
+
+@app.post("/events/{event_id}/notify/created", dependencies=[Depends(require_api_key)])
+async def trigger_event_created(event_id: int):
+    return await send_event_created_broadcast(event_id)
 
 
 @app.get("/expect")

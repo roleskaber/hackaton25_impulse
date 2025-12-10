@@ -159,6 +159,15 @@ async def get_all_users_from_db() -> list[User]:
         return list(result.scalars().all())
 
 
+async def get_all_user_emails_from_db(status: str | None = None) -> list[str]:
+    async with new_session() as session:
+        query = select(User.email)
+        if status:
+            query = query.filter_by(status=status)
+        result = await session.execute(query)
+        return [row[0] for row in result.all()]
+
+
 async def get_user_by_email(email: str) -> User | None:
     async with new_session() as session:
         query = select(User).filter_by(email=email)
@@ -166,7 +175,45 @@ async def get_user_by_email(email: str) -> User | None:
         return result.scalar_one_or_none()
 
 
-async def create_user_in_db(email: str, display_name: str | None = None, phone: str | None = None, role: str = "user", profile_image: str | None = None) -> User:
+async def create_user_in_db(
+    email: str,
+    display_name: str | None = None,
+    phone: str | None = None,
+    role: str = 'user',
+    profile_image: str | None = None,
+) -> User:
+    async with new_session() as session:
+        query = select(User).filter_by(email=email)
+        res = await session.execute(query)
+        existing: User | None = res.scalar_one_or_none()
+        if existing:
+            if display_name and not existing.display_name:
+                existing.display_name = display_name
+            if profile_image and not existing.profile_image:
+                existing.profile_image = profile_image
+            if display_name or profile_image:
+                await session.commit()
+                await session.refresh(existing)
+            return existing
+
+        user = User(
+            email=email,
+            display_name=display_name,
+            phone=phone,
+            role=role,
+            profile_image=profile_image,
+            status='active',
+        )
+        session.add(user)
+        try:
+            await session.commit()
+            await session.refresh(user)
+            return user
+        except SAIntegrityError:
+            await session.rollback()
+            res = await session.execute(select(User).filter_by(email=email))
+            return res.scalar_one()
+
     async with new_session() as session:
         query = select(User).filter_by(email=email)
         res = await session.execute(query)

@@ -98,7 +98,7 @@ async def login(request: LoginRequest):
 
 @app.post("/auth/verify-email")
 async def verify_email(request: VerifyEmailRequest):
-    return await send_verification_email(id_token=request.id_token)
+    return await send_verification_email(email=request.email, password=request.password)
 
 
 @app.post("/auth/password-reset")

@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 
 from fastapi import Header
 import random
+from mail_services import send_registration_email, send_password_reset_notice
+
 from crud import create_user_in_db
 load_dotenv('.env')
 
@@ -57,6 +59,12 @@ async def register_user(email: str, password: str) -> Dict[str, Any]:
             "returnSecureToken": True,
         },
     )
+    verification = await send_verification_email(email=email, password=password)
+    try:
+        await send_registration_email(email=email, code=verification["code"])
+    except Exception:
+        pass
+    # Ensure a local DB user exists for this email.
     await send_verification_email(data["idToken"])
     try:
         
@@ -102,13 +110,18 @@ async def send_verification_email(email: str, password: str) -> Dict[str, Any]:
 
 
 async def send_password_reset_email(email: str) -> Dict[str, Any]:
-    return await _request(
+    resp = await _request(
         "accounts:sendOobCode",
         {
             "requestType": "PASSWORD_RESET",
             "email": email,
         },
     )
+    try:
+        await send_password_reset_notice(email=email)
+    except Exception:
+        pass
+    return resp
 
 
 async def confirm_password_reset(oob_code: str, new_password: str) -> Dict[str, Any]:

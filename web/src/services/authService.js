@@ -134,28 +134,14 @@ export const registerUser = async (email, password, userData = {}) => {
     }
     
     const data = await response.json();
-    currentUser = {
-      uid: data.localId || data.uid,
-      email: data.email,
-      idToken: data.idToken,
-      refreshToken: data.refreshToken,
-      ...userData,
-    };
     
-    saveUserToStorage(currentUser);
-    notifyListeners(currentUser);
-    
-    if (userData.name || userData.profileImage) {
-      await updateUserProfileAfterRegistration(userData);
-    }
-    
-    return { success: true, user: currentUser };
+    return { success: true, data };
   } catch (error) {
     return { success: false, error: error.message };
   }
 };
 
-const updateUserProfileAfterRegistration = async (userData) => {
+export const updateUserProfileAfterRegistration = async (userData) => {
   try {
     const updateData = {};
     if (userData.name) {
@@ -242,6 +228,7 @@ export const getUserProfile = async () => {
       name: profileData.display_name || profileData.name,
       email: profileData.email,
       profileImage: profileData.profile_image || profileData.profileImage,
+      role: profileData.role,
     };
     
     currentUser = {
@@ -387,5 +374,28 @@ export const updateUserProfile = async (profileData) => {
 
 export const getAuthToken = () => {
   return currentUser?.idToken || localStorage.getItem(TOKEN_STORAGE_KEY);
+};
+
+export const verifyRegistrationCode = async (email, code) => {
+  try {
+    const response = await fetch(getApiUrl('/auth/verify-registration-code'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
+      },
+      body: JSON.stringify({ email, code }),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ detail: 'Ошибка проверки кода' }));
+      throw new Error(errorData.detail || 'Ошибка проверки кода');
+    }
+    
+    const data = await response.json();
+    return { success: true, data };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
 };
 

@@ -1,6 +1,7 @@
 ﻿import { useState, useRef, useEffect } from 'react';
 import './Signup.scss';
-import { registerUser } from '../../services/authService';
+import { registerUser, loginUser, updateUserProfileAfterRegistration } from '../../services/authService';
+import VerificationOverlay from '../../Components/VerificationOverlay/VerificationOverlay';
 
 function Signup({ onNavigate }) {
   const [step, setStep] = useState(1);
@@ -24,6 +25,8 @@ function Signup({ onNavigate }) {
     password: '',
     repeatPassword: ''
   });
+  const [isVerificationOpen, setIsVerificationOpen] = useState(false);
+  const [pendingRegistration, setPendingRegistration] = useState(null);
   const fileInputRef = useRef(null);
 
   const handleBack = () => {
@@ -69,8 +72,8 @@ function Signup({ onNavigate }) {
     if (nameValue.trim().length > 50) {
       return 'Имя слишком длинное (максимум 50 символов)';
     }
-    if (!/^[a-zA-Zа-яА-ЯёЁ\s-]+$/.test(nameValue.trim())) {
-      return 'Имя может содержать только буквы, пробелы и дефисы';
+    if (!/^[а-яА-ЯёЁ\s-]+$/.test(nameValue.trim())) {
+      return 'Имя может содержать только русские буквы, пробелы и дефисы';
     }
     if (/^\s|\s$/.test(nameValue)) {
       return 'Имя не может начинаться или заканчиваться пробелом';
@@ -257,12 +260,10 @@ function Signup({ onNavigate }) {
     try {
       let profileImage = null;
 
-      // Если выбран готовый аватар
       if (selectedProfile !== null && selectedProfile !== 9) {
         profileImage = profileImages[selectedProfile];
       }
 
-      // Регистрируем пользователя
       const result = await registerUser(
         formData.email,
         formData.password,
@@ -273,13 +274,13 @@ function Signup({ onNavigate }) {
       );
 
       if (result.success) {
-        setStep(3);
-        // Через 2 секунды переходим на страницу профиля
-        setTimeout(() => {
-          if (onNavigate) {
-            onNavigate('profile');
-          }
-        }, 2000);
+        setPendingRegistration({
+          email: formData.email,
+          password: formData.password,
+          name: formData.name,
+          profileImage: profileImage
+        });
+        setIsVerificationOpen(true);
       } else {
         setError(result.error || 'Ошибка при регистрации');
       }
@@ -289,6 +290,58 @@ function Signup({ onNavigate }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleVerificationSuccess = async (verificationData) => {
+    setIsVerificationOpen(false);
+    
+    if (pendingRegistration && verificationData?.idToken) {
+      try {
+        const loginResult = await loginUser(pendingRegistration.email, pendingRegistration.password);
+        
+        if (loginResult.success) {
+          if (pendingRegistration.name || pendingRegistration.profileImage) {
+            await updateUserProfileAfterRegistration({
+              name: pendingRegistration.name,
+              profileImage: pendingRegistration.profileImage
+            });
+          }
+          
+          alert('Регистрация успешно завершена!');
+          setStep(3);
+          setTimeout(() => {
+            if (onNavigate) {
+              onNavigate('profile');
+            }
+          }, 2000);
+        } else {
+          alert('Ошибка завершения регистрации');
+          setStep(1);
+        }
+      } catch (err) {
+        alert('Ошибка завершения регистрации');
+        setStep(1);
+        console.error('Ошибка завершения регистрации:', err);
+      }
+    } else {
+      alert('Ошибка завершения регистрации');
+      setStep(1);
+    }
+    
+    setPendingRegistration(null);
+  };
+
+  const handleVerificationError = (errorMessage) => {
+    alert(errorMessage || 'Ошибка проверки кода');
+    setIsVerificationOpen(false);
+    setPendingRegistration(null);
+    setStep(1);
+  };
+
+  const handleVerificationClose = () => {
+    setIsVerificationOpen(false);
+    setPendingRegistration(null);
+    setStep(1);
   };
 
   const profileImages = [
@@ -523,6 +576,16 @@ function Signup({ onNavigate }) {
           </div>
         )}
       </div>
+
+      {pendingRegistration ? (
+        <VerificationOverlay
+          isOpen={isVerificationOpen}
+          onClose={handleVerificationClose}
+          email={pendingRegistration.email}
+          onVerifySuccess={handleVerificationSuccess}
+          onVerifyError={handleVerificationError}
+        />
+      ) : null}
     </div>
   );
 }

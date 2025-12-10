@@ -159,6 +159,15 @@ async def get_all_users_from_db() -> list[User]:
         return list(result.scalars().all())
 
 
+async def get_all_user_emails_from_db(status: str | None = None) -> list[str]:
+    async with new_session() as session:
+        query = select(User.email)
+        if status:
+            query = query.filter_by(status=status)
+        result = await session.execute(query)
+        return [row[0] for row in result.all()]
+
+
 async def create_user_in_db(email: str, display_name: str | None = None, phone: str | None = None, role: str = "user") -> User:
     async with new_session() as session:
         query = select(User).filter_by(email=email)

@@ -9,6 +9,7 @@ from crud import (
     add_slug_to_db,
     create_order_in_db,
     get_all_users_from_db,
+    get_all_user_emails_from_db,
     get_all_orders_from_db,
     get_event_by_id,
     get_url_from_db,
@@ -27,6 +28,7 @@ from mail_services import (
     notify_organizer_cancel,
     notify_event_updated,
     notify_event_created,
+    notify_event_before_start,
     admin_emails,
 )
 
@@ -181,6 +183,26 @@ async def get_all_users():
 
 async def get_all_orders():
     return await get_all_orders_from_db()
+
+
+async def send_event_reminder(event_id: int):
+    event = await get_event_by_id(event_id)
+    if not event:
+        raise NoUrlFoundException
+    participants = await get_order_emails_by_event(event_id)
+    if participants:
+        await notify_event_before_start(event=event, recipients=participants)
+    return {"success": True, "recipients": list(set(participants))}
+
+
+async def send_event_created_broadcast(event_id: int):
+    event = await get_event_by_id(event_id)
+    if not event:
+        raise NoUrlFoundException
+    recipients = await get_all_user_emails_from_db(status="active")
+    if recipients:
+        await notify_event_created(event=event, recipients=recipients)
+    return {"success": True, "recipients": len(recipients)}
 
 
 async def get_event_details_by_id(event_id: int) -> dict:

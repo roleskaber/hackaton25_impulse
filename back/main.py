@@ -14,6 +14,8 @@ from service import (
     update_order,
     update_event,
     delete_user,
+    send_event_reminder,
+    send_event_created_broadcast,
     get_event_details_by_id,
     list_events_between_dates,
     get_all_orders,
@@ -196,6 +198,16 @@ async def patch_order(order_id: int, payload: OrderUpdate):
         people_count=payload.people_count,
     )
     return updated
+
+
+@app.post("/events/{event_id}/notify/reminder", dependencies=[Depends(require_api_key)])
+async def trigger_event_reminder(event_id: int):
+    return await send_event_reminder(event_id)
+
+
+@app.post("/events/{event_id}/notify/created", dependencies=[Depends(require_api_key)])
+async def trigger_event_created(event_id: int):
+    return await send_event_created_broadcast(event_id)
 
 
 @app.get("/expect")

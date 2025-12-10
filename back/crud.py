@@ -179,6 +179,33 @@ async def create_user_in_db(email: str, display_name: str | None = None, phone: 
             return res.scalar_one()
 
 
+async def ensure_admin_user(admin_email: str):
+    if not admin_email:
+        return
+    admin_email = admin_email.lower()
+    async with new_session() as session:
+        query = select(User).filter_by(email=admin_email)
+        res = await session.execute(query)
+        user: User | None = res.scalar_one_or_none()
+        if not user:
+            user = User(email=admin_email, role="admin", status="active")
+            session.add(user)
+            await session.commit()
+            await session.refresh(user)
+            return user
+        updated = False
+        if user.role != "admin":
+            user.role = "admin"
+            updated = True
+        if getattr(user, "status", "active") != "active":
+            user.status = "active"
+            updated = True
+        if updated:
+            await session.commit()
+            await session.refresh(user)
+        return user
+
+
 async def update_user_in_db(
     user_id: int,
     display_name: str | None = None,

@@ -1,4 +1,5 @@
 
+import os
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from ai_service import expect_ai
@@ -30,12 +31,16 @@ from auth_services import (
 from exceptions import NoUrlFoundException
 from fastapi import Depends
 from datatypes import *
+from crud import ensure_admin_user
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     async with engine.begin() as connection: 
        await connection.run_sync(Base.metadata.create_all)
+    admin_email = os.getenv("ADMIN_EMAIL", "")
+    if admin_email:
+        await ensure_admin_user(admin_email)
     yield
 
 

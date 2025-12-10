@@ -168,6 +168,13 @@ async def get_all_user_emails_from_db(status: str | None = None) -> list[str]:
         return [row[0] for row in result.all()]
 
 
+async def get_user_by_email(email: str) -> User | None:
+    async with new_session() as session:
+        query = select(User).filter_by(email=email)
+        result = await session.execute(query)
+        return result.scalar_one_or_none()
+
+
 async def create_user_in_db(email: str, display_name: str | None = None, phone: str | None = None, role: str = "user") -> User:
     async with new_session() as session:
         query = select(User).filter_by(email=email)

@@ -169,7 +169,7 @@ function Header({ onNavigate, currentPage = 'home' }) {
           {userData?.role === 'admin' && (
             <button
               className="header-action-btn achievements-btn"
-              onClick={() => handleProtectedNavigate('achievements')}
+              onClick={() => handleProtectedNavigate('admin')}
               type="button"
             >
               Админ
@@ -240,7 +240,7 @@ function Header({ onNavigate, currentPage = 'home' }) {
             <span className="mobile-nav-glow" aria-hidden="true" />
           </button>
           {userData?.role === 'admin' && (
-            <button className="mobile-nav-item" onClick={() => handleProtectedNavigate('achievements')} type="button">
+            <button className="mobile-nav-item" onClick={() => handleProtectedNavigate('admin')} type="button">
               <span>Админ</span>
               <span className="mobile-nav-glow" aria-hidden="true" />
             </button>

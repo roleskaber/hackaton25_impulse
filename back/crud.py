@@ -16,6 +16,8 @@ async def add_slug_to_db(
     place: str,
     city: str,
     event_time: datetime,
+    event_end_time: datetime | None,
+    status: str | None,
     price: float,
     description: str,
     purchased_count: int,
@@ -27,6 +29,8 @@ async def add_slug_to_db(
     async with new_session() as session:
         if event_time is not None and getattr(event_time, "tzinfo", None) is not None:
             event_time = event_time.astimezone(timezone.utc).replace(tzinfo=None)
+        if event_end_time is not None and getattr(event_end_time, "tzinfo", None) is not None:
+            event_end_time = event_end_time.astimezone(timezone.utc).replace(tzinfo=None)
 
         new_slug = Event(
             slug=slug,
@@ -35,6 +39,8 @@ async def add_slug_to_db(
             place=place,
             city=city,
             event_time=event_time,
+            event_end_time=event_end_time,
+            status=status or "scheduled",
             price=price,
             description=description,
             event_type=event_type,
@@ -78,6 +84,8 @@ async def get_event_from_db(event_id: int) -> dict | None:
             "place": res.place,
             "city": res.city,
             "event_time": res.event_time,
+            "event_end_time": res.event_end_time,
+            "status": res.status,
             "price": float(res.price),
             "description": res.description,
             "event_type": res.event_type,
@@ -122,6 +130,7 @@ async def create_order_in_db(
     qrcode: str,
     payment_method: str,
     people_count: int,
+    email: str,
 ) -> int:
     async with new_session() as session:
         order = Order(
@@ -129,11 +138,19 @@ async def create_order_in_db(
             qrcode=qrcode,
             payment_method=payment_method,
             people_count=people_count,
+            email=email,
         )
         session.add(order)
         await session.commit()
         await session.refresh(order)
         return order.id
+
+
+async def get_order_emails_by_event(event_id: int) -> list[str]:
+    async with new_session() as session:
+        query = select(Order.email).filter_by(event_id=event_id)
+        result = await session.execute(query)
+        return [row[0] for row in result.all()]
 
 
 async def get_all_users_from_db() -> list[User]:
@@ -150,7 +167,7 @@ async def create_user_in_db(email: str, display_name: str | None = None, phone: 
         if existing:
             return existing
 
-        user = User(email=email, display_name=display_name, phone=phone, role=role)
+        user = User(email=email, display_name=display_name, phone=phone, role=role, status="active")
         session.add(user)
         try:
             await session.commit()
@@ -167,6 +184,7 @@ async def update_user_in_db(
     display_name: str | None = None,
     phone: str | None = None,
     role: str | None = None,
+    status: str | None = None,
 ) -> User | None:
     async with new_session() as session:
         query = select(User).filter_by(id=user_id)
@@ -180,9 +198,87 @@ async def update_user_in_db(
             user.phone = phone
         if role is not None:
             user.role = role
+        if status is not None:
+            user.status = status
         await session.commit()
         await session.refresh(user)
         return user
+
+
+async def soft_delete_user_in_db(user_id: int) -> User | None:
+    async with new_session() as session:
+        query = select(User).filter_by(id=user_id)
+        result = await session.execute(query)
+        user = result.scalar_one_or_none()
+        if not user:
+            return None
+        user.status = "deleted"
+        await session.commit()
+        await session.refresh(user)
+        return user
+
+
+async def update_event_in_db(
+    event_id: int,
+    long_url: str | None = None,
+    name: str | None = None,
+    place: str | None = None,
+    city: str | None = None,
+    event_time: datetime | None = None,
+    event_end_time: datetime | None = None,
+    status: str | None = None,
+    price: float | None = None,
+    description: str | None = None,
+    event_type: str | None = None,
+    message_link: str | None = None,
+    purchased_count: int | None = None,
+    seats_total: int | None = None,
+    account_id: int | None = None,
+) -> Event | None:
+    async with new_session() as session:
+        query = select(Event).filter_by(event_id=event_id)
+        result = await session.execute(query)
+        event = result.scalar_one_or_none()
+        if not event:
+            return None
+
+        if event_time is not None and getattr(event_time, "tzinfo", None) is not None:
+            event_time = event_time.astimezone(timezone.utc).replace(tzinfo=None)
+        if event_end_time is not None and getattr(event_end_time, "tzinfo", None) is not None:
+            event_end_time = event_end_time.astimezone(timezone.utc).replace(tzinfo=None)
+
+        if long_url is not None:
+            event.long_url = long_url
+        if name is not None:
+            event.name = name
+        if place is not None:
+            event.place = place
+        if city is not None:
+            event.city = city
+        if event_time is not None:
+            event.event_time = event_time
+        if event_end_time is not None:
+            event.event_end_time = event_end_time
+        if status is not None:
+            event.status = status
+        if price is not None:
+            event.price = price
+        if description is not None:
+            event.description = description
+        if event_type is not None:
+            event.event_type = event_type
+        if message_link is not None:
+            event.message_link = message_link
+        if purchased_count is not None:
+            event.purchased_count = purchased_count
+        if seats_total is not None:
+            event.seats_total = seats_total
+        if account_id is not None:
+            event.account_id = account_id
+
+        await session.commit()
+        await session.refresh(event)
+        return event
 
 
 async def get_all_orders_from_db() -> list[Order]:

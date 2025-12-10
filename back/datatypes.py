@@ -7,7 +7,9 @@ class EventCreate(BaseModel):
     name: str = Field(..., description="Название события")
     place: str = Field(..., description="Место проведения")
     city: str = Field(..., description="Город проведения")
-    event_time: datetime = Field(..., description="Дата и время события")
+    event_time: datetime = Field(..., description="Дата и время начала события")
+    event_end_time: datetime | None = Field(None, description="Дата и время окончания события")
+    status: str | None = Field(None, description="Статус события")
     price: float = Field(..., description="Цена билета")
     description: str = Field(..., description="Описание события")
     event_type: str | None = Field(None, description="Тип события")
@@ -15,6 +17,23 @@ class EventCreate(BaseModel):
     purchased_count: int = Field(..., ge=0, description="Количество купивших билет")
     seats_total: int = Field(..., gt=0, description="Количество мест")
     account_id: int = Field(..., description="ID аккаунта организатора")
+
+
+class EventUpdate(BaseModel):
+    long_url: str | None = Field(None, description="Полная ссылка на событие")
+    name: str | None = Field(None, description="Название события")
+    place: str | None = Field(None, description="Место проведения")
+    city: str | None = Field(None, description="Город проведения")
+    event_time: datetime | None = Field(None, description="Дата и время начала события")
+    event_end_time: datetime | None = Field(None, description="Дата и время окончания события")
+    status: str | None = Field(None, description="Статус события")
+    price: float | None = Field(None, description="Цена билета")
+    description: str | None = Field(None, description="Описание события")
+    event_type: str | None = Field(None, description="Тип события")
+    message_link: str | None = Field(None, description="Ссылка на сообщение")
+    purchased_count: int | None = Field(None, ge=0, description="Количество купивших билет")
+    seats_total: int | None = Field(None, gt=0, description="Количество мест")
+    account_id: int | None = Field(None, description="ID аккаунта организатора")
 
 
 class OrderCreate(BaseModel):
@@ -34,6 +53,11 @@ class UserUpdate(BaseModel):
     display_name: str | None = Field(None, description="Имя пользователя")
     phone: str | None = Field(None, description="Телефон пользователя")
     role: Literal["admin", "user"] | None = Field(None, description="Роль пользователя")
+    status: Literal["active", "deleted"] | None = Field(None, description="Статус пользователя")
+
+
+class UserDeleteResponse(BaseModel):
+    success: bool = Field(..., description="Флаг успеха операции удаления пользователя")
 
 
 class RegisterRequest(BaseModel):

@@ -1,6 +1,15 @@
 import { useState, useEffect } from 'react';
 import './EventCard.scss';
 
+const makePlaceholder = (text, width = 230, height = 346) => {
+  const safeText = (text || 'Event').slice(0, 28);
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${width}' height='${height}'>
+    <rect width='100%' height='100%' fill='%23FF6B35'/>
+    <text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='%23FFFFFF' font-size='20' font-family='Arial, sans-serif'>${safeText}</text>
+  </svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+};
+
 function EventCard({ event, onClick }) {
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
@@ -42,14 +51,15 @@ function EventCard({ event, onClick }) {
   const hasTickets = availableSeats > 0;
 
   const getPlaceholderUrl = () => {
-    const eventName = event.name || 'Event';
-    const shortName = eventName.length > 20 ? eventName.substring(0, 20) + '...' : eventName;
-    return `https://via.placeholder.com/230x346/FF6B35/FFFFFF?text=${encodeURIComponent(shortName)}`;
+    return makePlaceholder(event.name, 230, 346);
   };
 
   const getImageUrl = () => {
     if (imageError) {
       return getPlaceholderUrl();
+    }
+    if (event.message_link && (event.message_link.startsWith('http://') || event.message_link.startsWith('https://'))) {
+      return event.message_link;
     }
     if (event.long_url && (event.long_url.startsWith('http://') || event.long_url.startsWith('https://'))) {
       return event.long_url;

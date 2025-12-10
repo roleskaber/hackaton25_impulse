@@ -10,9 +10,9 @@ from contextlib import asynccontextmanager
 from sqlalchemy import text
 from service import (
     add_event,
-    create_order,
+    create_order as service_create_order,
     update_user,
-    update_order,
+    update_order as service_update_order,
     update_event,
     delete_user,
     get_event_details_by_id,
@@ -51,6 +51,13 @@ async def lifespan(app: FastAPI):
             """))
             if result.scalar() is None:
                 await conn.execute(text("ALTER TABLE users ADD COLUMN profile_image TEXT"))
+            result_orders_email = await conn.execute(text("""
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_name='orders' AND column_name='email'
+            """))
+            if result_orders_email.scalar() is None:
+                await conn.execute(text("ALTER TABLE orders ADD COLUMN email TEXT"))
     except Exception as e:
         print(f"Warning: Could not add columns (they might already exist): {e}")
     admin_email = os.getenv("ADMIN_EMAIL", "")
@@ -129,7 +136,7 @@ async def events_between_dates(payload: EventsBetweenRequest, limit: int = 100):
 
 @app.post("/order")
 async def create_order(order: OrderCreate):
-    return await create_order(
+    return await service_create_order(
         event_id=order.event_id,
         payment_method=order.payment_method,
         people_count=order.people_count,
@@ -249,7 +256,7 @@ async def get_orders():
 
 @app.patch("/orders/{order_id}", dependencies=[Depends(require_api_key)])
 async def patch_order(order_id: int, payload: OrderUpdate):
-    updated = await update_order(
+    updated = await service_update_order(
         order_id=order_id,
         qrcode=payload.qrcode,
         payment_method=payload.payment_method,

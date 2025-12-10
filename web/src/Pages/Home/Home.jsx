@@ -38,10 +38,20 @@ function Home({ onNavigate }) {
   }, [upcomingEvents.length]);
 
   const carouselEvents = useMemo(() => {
-    return upcomingEvents.slice(0, 4).map(event => ({
-      ...event,
-      image_url: event.long_url || `https://via.placeholder.com/1440x600?text=${encodeURIComponent(event.name)}`
-    }));
+    return upcomingEvents.slice(0, 4).map(event => {
+      let imageUrl = '';
+      if (event.message_link && (event.message_link.startsWith('http://') || event.message_link.startsWith('https://'))) {
+        imageUrl = event.message_link;
+      } else if (event.long_url && (event.long_url.startsWith('http://') || event.long_url.startsWith('https://'))) {
+        imageUrl = event.long_url;
+      } else {
+        imageUrl = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='1440' height='600'><rect width='100%' height='100%' fill='%23FF6B35'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='%23FFFFFF' font-size='42' font-family='Arial, sans-serif'>${event.name || 'Event'}</text></svg>`)}`;
+      }
+      return {
+        ...event,
+        image_url: imageUrl
+      };
+    });
   }, [upcomingEvents]);
 
   const filteredActiveEvents = useMemo(() => {
@@ -239,24 +249,35 @@ function Home({ onNavigate }) {
         <section className="ai-recommendation-section">
           <div className="ai-recommendation-container">
             <div className="ai-recommendation-image-wrapper">
-              {upcomingEvents[0].long_url && (upcomingEvents[0].long_url.startsWith('http://') || upcomingEvents[0].long_url.startsWith('https://')) ? (
-                <img 
-                  src={upcomingEvents[0].long_url} 
-                  alt={upcomingEvents[0].name}
-                  className="ai-recommendation-image"
-                  onError={(e) => {
-                    e.target.src = `https://via.placeholder.com/400x300/FF6B35/FFFFFF?text=${encodeURIComponent(upcomingEvents[0].name || 'Event')}`;
-                  }}
-                />
-              ) : (
-                <div className="ai-recommendation-placeholder">
-                  <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#FF6B35" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M2 17L12 22L22 17" stroke="#FF6B35" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M2 12L12 17L22 12" stroke="#FF6B35" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </div>
-              )}
+              {(() => {
+                const event = upcomingEvents[0];
+                let imageUrl = '';
+                if (event.message_link && (event.message_link.startsWith('http://') || event.message_link.startsWith('https://'))) {
+                  imageUrl = event.message_link;
+                } else if (event.long_url && (event.long_url.startsWith('http://') || event.long_url.startsWith('https://'))) {
+                  imageUrl = event.long_url;
+                } else {
+                  imageUrl = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'><rect width='100%' height='100%' fill='%23FF6B35'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='%23FFFFFF' font-size='26' font-family='Arial, sans-serif'>${event.name || 'Event'}</text></svg>`)}`;
+                }
+                return imageUrl ? (
+                  <img 
+                    src={imageUrl} 
+                    alt={event.name}
+                    className="ai-recommendation-image"
+                    onError={(e) => {
+                      e.target.src = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'><rect width='100%' height='100%' fill='%23FF6B35'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='%23FFFFFF' font-size='26' font-family='Arial, sans-serif'>${event.name || 'Event'}</text></svg>`)}`;
+                    }}
+                  />
+                ) : (
+                  <div className="ai-recommendation-placeholder">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#FF6B35" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M2 17L12 22L22 17" stroke="#FF6B35" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M2 12L12 17L22 12" stroke="#FF6B35" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                );
+              })()}
               <h3 className="ai-recommendation-event-title">{upcomingEvents[0].name}</h3>
               <div className="ai-recommendation-tooltip">
                 <div className="tooltip-content">

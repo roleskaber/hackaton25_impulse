@@ -334,3 +334,11 @@ async def update_event(
         "account_id": event.account_id,
     }
     
+def get_preview():
+    return {"data": [
+        "https://i.ytimg.com/vi/GWqJGYUjxHI/maxresdefault.jpg", 
+        "https://avatars.mds.yandex.net/i?id=b4f5eb3dafda39bd684819099b5fd7fecbcbb1f3-3193964-images-thumbs&n=13", 
+        "https://avatars.mds.yandex.net/i?id=17c28b6c89e8be4d0475f6800a8ce684aa5150fd-12913927-images-thumbs&n=13",
+        "https://avatars.mds.yandex.net/i?id=0252afbaa9600e67c84bedb810d28e8ef2a118b5-12569903-images-thumbs&n=13", 
+        "https://avatars.mds.yandex.net/i?id=b0daf01dede916519a43fc7e58556cf85ec9386d-4713335-images-thumbs&n=13"
+    ]}

@@ -183,4 +183,33 @@ async def update_user_in_db(
         await session.commit()
         await session.refresh(user)
         return user
+
+
+async def get_all_orders_from_db() -> list[Order]:
+    async with new_session() as session:
+        result = await session.execute(select(Order))
+        return list(result.scalars().all())
+
+
+async def update_order_in_db(
+    order_id: int,
+    qrcode: str | None = None,
+    payment_method: str | None = None,
+    people_count: int | None = None,
+) -> Order | None:
+    async with new_session() as session:
+        query = select(Order).filter_by(id=order_id)
+        result = await session.execute(query)
+        order = result.scalar_one_or_none()
+        if not order:
+            return None
+        if qrcode is not None:
+            order.qrcode = qrcode
+        if payment_method is not None:
+            order.payment_method = payment_method
+        if people_count is not None:
+            order.people_count = people_count
+        await session.commit()
+        await session.refresh(order)
+        return order
     

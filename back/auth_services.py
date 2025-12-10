@@ -10,6 +10,7 @@ from fastapi import Header
 import random
 from mail_services import send_registration_email, send_password_reset_notice
 
+from crud import create_user_in_db
 load_dotenv('.env')
 
 def require_api_key(x_api_key: str = Header(..., alias="X-API-KEY")):
@@ -63,10 +64,8 @@ async def register_user(email: str, password: str) -> Dict[str, Any]:
         await send_registration_email(email=email, code=verification["code"])
     except Exception:
         pass
-
     try:
-        from crud import create_user_in_db
-
+        
         await create_user_in_db(email=email, role=role)
     except Exception:
         pass
@@ -132,3 +131,18 @@ async def confirm_password_reset(oob_code: str, new_password: str) -> Dict[str, 
         },
     )
 
+
+async def verify_id_token(id_token: str) -> Dict[str, Any]:
+    """Верифицирует Firebase ID токен и возвращает данные пользователя"""
+    try:
+        return await _request(
+            "accounts:lookup",
+            {
+                "idToken": id_token,
+            },
+        )
+    except HTTPException as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+        )

@@ -1,6 +1,7 @@
 ﻿import { useState, useRef, useEffect } from 'react';
 import './Signup.scss';
-import { registerUser } from '../../services/authService';
+import { registerUser, loginUser, updateUserProfileAfterRegistration } from '../../services/authService';
+import VerificationOverlay from '../../Components/VerificationOverlay/VerificationOverlay';
 
 function Signup({ onNavigate }) {
   const [step, setStep] = useState(1);
@@ -11,8 +12,7 @@ function Signup({ onNavigate }) {
     name: '',
     email: '',
     password: '',
-    repeatPassword: '',
-    username: ''
+    repeatPassword: ''
   });
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [customAvatarFile, setCustomAvatarFile] = useState(null);
@@ -21,11 +21,12 @@ function Signup({ onNavigate }) {
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({
     name: '',
-    username: '',
     email: '',
     password: '',
     repeatPassword: ''
   });
+  const [isVerificationOpen, setIsVerificationOpen] = useState(false);
+  const [pendingRegistration, setPendingRegistration] = useState(null);
   const fileInputRef = useRef(null);
 
   const handleBack = () => {
@@ -71,8 +72,8 @@ function Signup({ onNavigate }) {
     if (nameValue.trim().length > 50) {
       return 'Имя слишком длинное (максимум 50 символов)';
     }
-    if (!/^[a-zA-Zа-яА-ЯёЁ\s-]+$/.test(nameValue.trim())) {
-      return 'Имя может содержать только буквы, пробелы и дефисы';
+    if (!/^[а-яА-ЯёЁ\s-]+$/.test(nameValue.trim())) {
+      return 'Имя может содержать только русские буквы, пробелы и дефисы';
     }
     if (/^\s|\s$/.test(nameValue)) {
       return 'Имя не может начинаться или заканчиваться пробелом';
@@ -83,27 +84,6 @@ function Signup({ onNavigate }) {
     return '';
   };
 
-  const validateUsername = (usernameValue) => {
-    if (!usernameValue.trim()) {
-      return 'Логин обязателен для заполнения';
-    }
-    if (usernameValue.trim().length < 3) {
-      return 'Логин должен содержать минимум 3 символа';
-    }
-    if (usernameValue.trim().length > 30) {
-      return 'Логин слишком длинный (максимум 30 символов)';
-    }
-    if (!/^[a-zA-Z0-9_]+$/.test(usernameValue.trim())) {
-      return 'Логин может содержать только буквы, цифры и подчеркивание';
-    }
-    if (/^\d/.test(usernameValue.trim())) {
-      return 'Логин не может начинаться с цифры';
-    }
-    if (/^_|_$/.test(usernameValue.trim())) {
-      return 'Логин не может начинаться или заканчиваться подчеркиванием';
-    }
-    return '';
-  };
 
   const validateEmail = (emailValue) => {
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -176,9 +156,6 @@ function Signup({ onNavigate }) {
         case 'name':
           error = validateName(value);
           break;
-        case 'username':
-          error = validateUsername(value);
-          break;
         case 'email':
           error = validateEmail(value);
           break;
@@ -205,20 +182,18 @@ function Signup({ onNavigate }) {
 
   const validateStep1 = () => {
     const nameError = validateName(formData.name);
-    const usernameError = validateUsername(formData.username);
     const emailError = validateEmail(formData.email);
     const passwordError = validatePassword(formData.password);
     const repeatPasswordError = validateRepeatPassword(formData.repeatPassword, formData.password);
 
     setFieldErrors({
       name: nameError,
-      username: usernameError,
       email: emailError,
       password: passwordError,
       repeatPassword: repeatPasswordError
     });
 
-    if (nameError || usernameError || emailError || passwordError || repeatPasswordError) {
+    if (nameError || emailError || passwordError || repeatPasswordError) {
       setError('Исправьте ошибки в форме');
       return false;
     }
@@ -285,30 +260,27 @@ function Signup({ onNavigate }) {
     try {
       let profileImage = null;
 
-      // Если выбран готовый аватар
       if (selectedProfile !== null && selectedProfile !== 9) {
         profileImage = profileImages[selectedProfile];
       }
 
-      // Регистрируем пользователя
       const result = await registerUser(
         formData.email,
         formData.password,
         {
           name: formData.name,
-          username: formData.username,
           profileImage: profileImage
         }
       );
 
       if (result.success) {
-        setStep(3);
-        // Через 2 секунды переходим на страницу профиля
-        setTimeout(() => {
-          if (onNavigate) {
-            onNavigate('profile');
-          }
-        }, 2000);
+        setPendingRegistration({
+          email: formData.email,
+          password: formData.password,
+          name: formData.name,
+          profileImage: profileImage
+        });
+        setIsVerificationOpen(true);
       } else {
         setError(result.error || 'Ошибка при регистрации');
       }
@@ -318,6 +290,58 @@ function Signup({ onNavigate }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleVerificationSuccess = async (verificationData) => {
+    setIsVerificationOpen(false);
+    
+    if (pendingRegistration && verificationData?.idToken) {
+      try {
+        const loginResult = await loginUser(pendingRegistration.email, pendingRegistration.password);
+        
+        if (loginResult.success) {
+          if (pendingRegistration.name || pendingRegistration.profileImage) {
+            await updateUserProfileAfterRegistration({
+              name: pendingRegistration.name,
+              profileImage: pendingRegistration.profileImage
+            });
+          }
+          
+          alert('Регистрация успешно завершена!');
+          setStep(3);
+          setTimeout(() => {
+            if (onNavigate) {
+              onNavigate('profile');
+            }
+          }, 2000);
+        } else {
+          alert('Ошибка завершения регистрации');
+          setStep(1);
+        }
+      } catch (err) {
+        alert('Ошибка завершения регистрации');
+        setStep(1);
+        console.error('Ошибка завершения регистрации:', err);
+      }
+    } else {
+      alert('Ошибка завершения регистрации');
+      setStep(1);
+    }
+    
+    setPendingRegistration(null);
+  };
+
+  const handleVerificationError = (errorMessage) => {
+    alert(errorMessage || 'Ошибка проверки кода');
+    setIsVerificationOpen(false);
+    setPendingRegistration(null);
+    setStep(1);
+  };
+
+  const handleVerificationClose = () => {
+    setIsVerificationOpen(false);
+    setPendingRegistration(null);
+    setStep(1);
   };
 
   const profileImages = [
@@ -351,7 +375,7 @@ function Signup({ onNavigate }) {
                   Вход
                 </div>
                 <div ref={registerTabRef} className="tab active">
-                  Регестрация
+                  Регистрация
                 </div>
               </div>
 
@@ -370,25 +394,6 @@ function Signup({ onNavigate }) {
                   />
                   {fieldErrors.name && (
                     <div className="field-error">{fieldErrors.name}</div>
-                  )}
-                </div>
-
-                <div className={`input-field ${fieldErrors.username ? 'error' : ''}`}>
-                  <input 
-                    type="text" 
-                    placeholder="Логин"
-                    value={formData.username}
-                    onChange={(e) => handleInputChange('username', e.target.value)}
-                    onBlur={() => {
-                      setFieldErrors({ ...fieldErrors, username: validateUsername(formData.username) });
-                    }}
-                  />
-                  <svg className="input-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path fillRule="evenodd" clipRule="evenodd" d="M4.99924 4C4.99924 2.34315 6.34239 1 7.99924 1C9.6561 1 10.9992 2.34315 10.9992 4C10.9992 5.65685 9.6561 7 7.99924 7C6.34239 7 4.99924 5.65685 4.99924 4Z" fill="var(--color-text-primary)"/>
-                    <path fillRule="evenodd" clipRule="evenodd" d="M2.50007 13.4036C2.55163 10.4104 4.9939 8 7.99924 8C11.0047 8 13.447 10.4105 13.4984 13.4038C13.5018 13.6023 13.3875 13.784 13.207 13.8668C11.6211 14.5945 9.85693 15 7.99946 15C6.14182 15 4.37753 14.5945 2.79146 13.8666C2.61101 13.7838 2.49666 13.6021 2.50007 13.4036Z" fill="var(--color-text-primary)"/>
-                  </svg>
-                  {fieldErrors.username && (
-                    <div className="field-error">{fieldErrors.username}</div>
                   )}
                 </div>
 
@@ -571,6 +576,16 @@ function Signup({ onNavigate }) {
           </div>
         )}
       </div>
+
+      {pendingRegistration ? (
+        <VerificationOverlay
+          isOpen={isVerificationOpen}
+          onClose={handleVerificationClose}
+          email={pendingRegistration.email}
+          onVerifySuccess={handleVerificationSuccess}
+          onVerifyError={handleVerificationError}
+        />
+      ) : null}
     </div>
   );
 }

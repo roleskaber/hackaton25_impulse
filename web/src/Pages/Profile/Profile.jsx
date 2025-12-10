@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect, useRef } from 'react';
 import './Profile.scss';
-import { getCurrentUser, onAuthStateChange, updateUserProfile, logoutUser } from '../../services/authService';
+import { getCurrentUser, onAuthStateChange, updateUserProfile, logoutUser, getUserProfile } from '../../services/authService';
 import { showSuccess, showError } from '../../Components/Toast/Toast';
 
 function Profile({ onNavigate }) {
@@ -11,31 +11,69 @@ function Profile({ onNavigate }) {
   const [editing, setEditing] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
-    username: '',
     email: ''
   });
   const [customAvatarDataUrl, setCustomAvatarDataUrl] = useState(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const fileInputRef = useRef(null);
+  const profileTabRef = useRef(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChange((user) => {
+    const unsubscribe = onAuthStateChange(async (user) => {
       if (user) {
         setUser(user);
-        setUserData(user);
-        setFormData({
-          name: user.name || '',
-          username: user.username || '',
-          email: user.email || ''
-        });
+
+        if (user.name || user.profileImage) {
+          setUserData(user);
+          setFormData({
+            name: user.name || '',
+            email: user.email || ''
+          });
+        } else {
+
+          try {
+            const profileData = await getUserProfile();
+            const fullUserData = {
+              ...user,
+              name: profileData.name || user.name,
+              email: profileData.email || user.email,
+              profileImage: profileData.profileImage || user.profileImage
+            };
+            setUserData(fullUserData);
+            setFormData({
+              name: profileData.name || user.name || '',
+              email: profileData.email || user.email || ''
+            });
+          } catch (error) {
+            console.error('Ошибка загрузки профиля:', error);
+
+            const fallbackUserData = {
+              ...user,
+              name: user.name || '',
+              email: user.email || '',
+              profileImage: user.profileImage || null
+            };
+            setUserData(fallbackUserData);
+            setFormData({
+              name: user.name || '',
+              email: user.email || ''
+            });
+          }
+        }
         setLoading(false);
       } else {
-        // Если пользователь не авторизован, перенаправляем на страницу входа
+
+        setUser(null);
+        setUserData(null);
+        setFormData({
+          name: '',
+          email: ''
+        });
+        setLoading(false);
         if (onNavigate) {
           onNavigate('login');
         }
-        setLoading(false);
       }
     });
 
@@ -53,7 +91,6 @@ function Profile({ onNavigate }) {
     setEditing(false);
     setFormData({
       name: userData?.name || '',
-      username: userData?.username || '',
       email: userData?.email || ''
     });
     setCustomAvatarDataUrl(null);
@@ -65,13 +102,11 @@ function Profile({ onNavigate }) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Проверка типа файла
     if (!file.type || !file.type.startsWith('image/')) {
       setError('Выберите изображение');
       return;
     }
 
-    // Проверка размера (максимум 2MB для data URL, чтобы не перегружать Firestore)
     if (file.size > 2 * 1024 * 1024) {
       setError('Размер файла не должен превышать 2MB');
       return;
@@ -79,10 +114,8 @@ function Profile({ onNavigate }) {
 
     setError('');
 
-    // Преобразуем файл в data URL (base64)
     const reader = new FileReader();
     reader.onloadend = () => {
-      // reader.result содержит data URL (например: "data:image/jpeg;base64,/9j/4AAQ...")
       setCustomAvatarDataUrl(reader.result);
     };
     reader.onerror = () => {
@@ -97,41 +130,57 @@ function Profile({ onNavigate }) {
     }
   };
 
+  const validateName = (name) => {
+    if (!name || !name.trim()) {
+      return 'Имя обязательно для заполнения';
+    }
+    if (name.trim().length < 2) {
+      return 'Имя должно содержать минимум 2 символа';
+    }
+    if (name.trim().length > 50) {
+      return 'Имя слишком длинное (максимум 50 символов)';
+    }
+    if (!/^[а-яА-ЯёЁ\s-]+$/.test(name.trim())) {
+      return 'Имя может содержать только русские буквы, пробелы и дефисы';
+    }
+    return '';
+  };
+
   const handleSave = async () => {
     setError('');
     setSuccess('');
+    
+    const nameError = validateName(formData.name);
+    if (nameError) {
+      setError(nameError);
+      return;
+    }
+
     setLoading(true);
 
     try {
       const updates = {};
 
-      // Обновляем имя
-      if (formData.name !== userData?.name) {
-        updates.name = formData.name;
+      const trimmedName = formData.name.trim();
+      if (trimmedName !== (userData?.name || '').trim()) {
+        updates.name = trimmedName;
       }
 
-      // Обновляем логин
-      if (formData.username !== userData?.username) {
-        updates.username = formData.username;
-      }
-
-      // Сохраняем аватар как data URL (base64) прямо в Firestore
       if (customAvatarDataUrl) {
-        // customAvatarDataUrl Сѓже содержит полный data URL (например: "data:image/jpeg;base64,...")
         updates.profileImage = customAvatarDataUrl;
       }
 
-      // Сохраняем изменения
       if (Object.keys(updates).length > 0) {
-        await updateUserProfile(updates);
+        const updatedProfileData = await updateUserProfile(updates);
 
-        // Обновляем локальное состояние
-        const updatedUserData = { ...userData, ...updates };
+        const updatedUserData = {
+          ...userData,
+          ...updatedProfileData
+        };
         setUserData(updatedUserData);
         setFormData({
-          name: updatedUserData.name || '',
-          username: updatedUserData.username || '',
-          email: updatedUserData.email || ''
+          name: updatedProfileData.name || updatedUserData.name || '',
+          email: updatedProfileData.email || updatedUserData.email || ''
         });
         setCustomAvatarDataUrl(null);
         setSuccess('Профиль успешно обновлен');
@@ -150,18 +199,26 @@ function Profile({ onNavigate }) {
   const handleLogout = async () => {
     setLoading(true);
     try {
-      const result = await logoutUser();
-      if (result.success) {
+      setUser(null);
+      setUserData(null);
+      setFormData({
+        name: '',
+        email: ''
+      });
+      setCustomAvatarDataUrl(null);
+      
+      await logoutUser();
+      
+      
+      setTimeout(() => {
         if (onNavigate) {
-          onNavigate('home');
+          onNavigate('login');
         }
-      } else {
-        setError(result.error || 'Ошибка при выходе');
-      }
+        setLoading(false);
+      }, 100);
     } catch (err) {
       setError('Ошибка при выходе');
       console.error('Ошибка выхода:', err);
-    } finally {
       setLoading(false);
     }
   };
@@ -178,11 +235,10 @@ function Profile({ onNavigate }) {
   }
 
   if (!user) {
-    return null; // Редирект Сѓже произошел
+    return null;
   }
 
-  // Используем новый аватар из превью или сохраненный в профиле
-  // Data URL может быть как из customAvatarDataUrl (новый, еще не сохраненный), так и из userData.profileImage (Сѓже сохраненный)
+
   const avatarUrl = customAvatarDataUrl || userData?.profileImage || null;
 
   return (
@@ -196,6 +252,7 @@ function Profile({ onNavigate }) {
 
         <div className="profile-tabs">
           <div 
+            ref={profileTabRef}
             className={`tab ${activeTab === 'profile' ? 'active' : ''}`}
             onClick={() => setActiveTab('profile')}
           >
@@ -245,10 +302,6 @@ function Profile({ onNavigate }) {
                   <span>{userData?.name || 'Не указано'}</span>
                 </div>
                 <div className="info-item">
-                  <label>Логин:</label>
-                  <span>{userData?.username || 'Не указано'}</span>
-                </div>
-                <div className="info-item">
                   <label>Email:</label>
                   <span>{userData?.email || 'Не указано'}</span>
                 </div>
@@ -262,15 +315,6 @@ function Profile({ onNavigate }) {
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     placeholder="Введите имя"
-                  />
-                </div>
-                <div className="form-field">
-                  <label>Логин:</label>
-                  <input
-                    type="text"
-                    value={formData.username}
-                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                    placeholder="Введите логин"
                   />
                 </div>
                 <div className="form-field">

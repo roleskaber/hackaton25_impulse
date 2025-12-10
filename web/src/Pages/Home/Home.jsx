@@ -24,6 +24,7 @@ function Home({ onNavigate }) {
   const [selectedAfishaCategories, setSelectedAfishaCategories] = useState([]);
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [displayedAfishaCount, setDisplayedAfishaCount] = useState(4);
+  const [eventsTab, setEventsTab] = useState('active');
   const activeEventsRef = useRef(null);
   const afishaEventsRef = useRef(null);
 
@@ -86,7 +87,40 @@ function Home({ onNavigate }) {
 
   useEffect(() => {
     setDisplayedAfishaCount(4);
-  }, [selectedAfishaCategories]);
+  }, [selectedAfishaCategories, eventsTab]);
+
+  const startOfToday = useMemo(() => {
+    const date = new Date();
+    date.setHours(0, 0, 0, 0);
+    return date;
+  }, []);
+
+  const parseEventDate = (value) => {
+    const parsed = value ? new Date(value) : null;
+    return parsed && !Number.isNaN(parsed.getTime()) ? parsed : null;
+  };
+
+  const activeAfishaEvents = useMemo(() => {
+    return filteredAfishaEvents.filter(event => {
+      const eventDate = parseEventDate(event.event_time);
+      if (!eventDate) return true;
+      return eventDate >= startOfToday;
+    });
+  }, [filteredAfishaEvents, startOfToday]);
+
+  const pastAfishaEvents = useMemo(() => {
+    return filteredAfishaEvents.filter(event => {
+      const eventDate = parseEventDate(event.event_time);
+      if (!eventDate) return false;
+      return eventDate < startOfToday;
+    });
+  }, [filteredAfishaEvents, startOfToday]);
+
+  const currentAfishaEvents = useMemo(() => {
+    if (eventsTab === 'active') return activeAfishaEvents;
+    if (eventsTab === 'past') return pastAfishaEvents;
+    return [];
+  }, [eventsTab, activeAfishaEvents, pastAfishaEvents]);
 
   const handleCategoryToggle = (category) => {
     setSelectedCategories(prev =>
@@ -122,6 +156,10 @@ function Home({ onNavigate }) {
 
   const handleSeeMore = () => {
     setDisplayedAfishaCount(prev => prev + 4);
+  };
+
+  const handleTabChange = (tab) => {
+    setEventsTab(tab);
   };
 
   const nextCarousel = () => {
@@ -297,18 +335,57 @@ function Home({ onNavigate }) {
         )}
       </section>
 
+      <div className="events-toggle-bar">
+        {[
+          { key: 'active', label: 'Активные события', icon: (
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="9" stroke="white" strokeWidth="2"/>
+              <path d="M10 8.5L16 12L10 15.5V8.5Z" fill="white"/>
+            </svg>
+          )},
+          { key: 'past', label: 'Прошедшие события', icon: (
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="9" stroke="white" strokeWidth="2"/>
+              <path d="M12 7V12L15 14" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          )},
+          { key: 'mine', label: 'Мои события', icon: (
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="8" r="4" stroke="white" strokeWidth="2"/>
+              <path d="M6 20C6.8 16.6667 8.8 15 12 15C15.2 15 17.2 16.6667 18 20" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          )}
+        ].map(tab => (
+          <button
+            key={tab.key}
+            className={`events-toggle type-${tab.key} ${eventsTab === tab.key ? 'is-active' : ''}`}
+            onClick={() => handleTabChange(tab.key)}
+            type="button"
+          >
+            <span className="toggle-icon" aria-hidden="true">{tab.icon}</span>
+            <span className="toggle-label">{tab.label}</span>
+          </button>
+        ))}
+      </div>
+
       <section className="afisha-section">
         <div className="section-header">
-          <h2 className="section-title">Афиша</h2>
+          <h2 className="section-title">
+            {eventsTab === 'active' && 'Афиша'}
+            {eventsTab === 'past' && 'Прошедшие события'}
+            {eventsTab === 'mine' && 'Мои события'}
+          </h2>
         </div>
 
         {loading ? (
           <div className="loading-message">Загрузка событий...</div>
-        ) : filteredAfishaEvents.length > 0 ? (
+        ) : eventsTab === 'mine' ? (
+          <div className="no-events-message">Мои события пока пусты</div>
+        ) : currentAfishaEvents.length > 0 ? (
           <>
             <div className="events-scroll-container">
               <div className="events-scroll events-scroll-no-scroll" ref={afishaEventsRef}>
-                {filteredAfishaEvents.slice(0, displayedAfishaCount).map(event => (
+                {currentAfishaEvents.slice(0, displayedAfishaCount).map(event => (
                   <EventCard
                     key={event.event_id}
                     event={event}
@@ -318,7 +395,7 @@ function Home({ onNavigate }) {
               </div>
             </div>
 
-            {displayedAfishaCount < filteredAfishaEvents.length && (
+            {displayedAfishaCount < currentAfishaEvents.length && (
               <div className="see-more-container">
                 <button className="see-more-btn" onClick={handleSeeMore}>
                   Посмотреть еще
@@ -330,7 +407,9 @@ function Home({ onNavigate }) {
             )}
           </>
         ) : (
-          <div className="no-events-message">Нет событий по выбранным категориям</div>
+          <div className="no-events-message">
+            {eventsTab === 'past' ? 'Прошедших событий не найдено' : 'Нет событий по выбранным категориям'}
+          </div>
         )}
       </section>
 

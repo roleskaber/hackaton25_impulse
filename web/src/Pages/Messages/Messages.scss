@@ -1,8 +1,12 @@
 .messages-page {
   max-width: 1040px;
-  margin: 120px auto 80px;
-  padding: 0 24px;
+  margin: 0 auto;
+  padding: 120px 24px 160px;
   color: #f6fbff;
+  min-height: calc(100vh - 80px);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .messages-header {
@@ -29,6 +33,12 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
+    p {
+      margin: 0;
+      color: #ff6b35;
+      font-size: 22px;
+      font-weight: 800;
+    }
     button {
       align-self: center;
       margin-top: 4px;

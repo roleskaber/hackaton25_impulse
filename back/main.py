@@ -98,9 +98,9 @@ async def events_between_dates(payload: EventsBetweenRequest, limit: int = 100):
 async def create_order(order: OrderCreate):
     return await create_order(
         event_id=order.event_id,
-        qrcode=order.qrcode,
         payment_method=order.payment_method,
         people_count=order.people_count,
+        email=order.email,
     )
 
 

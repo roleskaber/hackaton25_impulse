@@ -351,7 +351,7 @@ function Signup({ onNavigate }) {
                   Вход
                 </div>
                 <div ref={registerTabRef} className="tab active">
-                  Регестрация
+                  Регистрация
                 </div>
               </div>
 

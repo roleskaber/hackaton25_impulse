@@ -18,6 +18,7 @@ function Profile({ onNavigate }) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const fileInputRef = useRef(null);
+  const profileTabRef = useRef(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChange((user) => {
@@ -196,6 +197,7 @@ function Profile({ onNavigate }) {
 
         <div className="profile-tabs">
           <div 
+            ref={profileTabRef}
             className={`tab ${activeTab === 'profile' ? 'active' : ''}`}
             onClick={() => setActiveTab('profile')}
           >

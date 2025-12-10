@@ -10,8 +10,11 @@ from service import (
     add_event,
     create_order,
     update_user,
+    update_order,
     get_event_details_by_id,
     list_events_between_dates,
+    get_all_orders,
+    get_all_users,
     get_preview
 )
 from auth_services import (
@@ -106,20 +109,18 @@ async def create_order(order: OrderCreate):
 
 @app.get("/users", dependencies=[Depends(require_api_key)])
 async def get_users():
-    async with new_session() as session:
-        result = await session.execute(select(User))
-        users = result.scalars().all()
-        return [
-            {
-                "id": u.id,
-                "email": u.email,
-                "display_name": u.display_name,
-                "phone": u.phone,
-                "role": u.role,
-                "created_at": u.created_at,
-            }
-            for u in users
-        ]
+    users = await get_all_users()
+    return [
+        {
+            "id": u.id,
+            "email": u.email,
+            "display_name": u.display_name,
+            "phone": u.phone,
+            "role": u.role,
+            "created_at": u.created_at,
+        }
+        for u in users
+    ]
 
 
 @app.patch("/users/{user_id}", dependencies=[Depends(require_api_key)])
@@ -129,6 +130,32 @@ async def update_user(user_id: int, payload: UserUpdate):
         display_name=payload.display_name,
         phone=payload.phone,
         role=payload.role,
+    )
+    return updated
+
+
+@app.get("/orders", dependencies=[Depends(require_api_key)])
+async def get_orders():
+    orders = await get_all_orders()
+    return [
+        {
+            "id": o.id,
+            "event_id": o.event_id,
+            "qrcode": o.qrcode,
+            "payment_method": o.payment_method,
+            "people_count": o.people_count,
+        }
+        for o in orders
+    ]
+
+
+@app.patch("/orders/{order_id}", dependencies=[Depends(require_api_key)])
+async def patch_order(order_id: int, payload: OrderUpdate):
+    updated = await update_order(
+        order_id=order_id,
+        qrcode=payload.qrcode,
+        payment_method=payload.payment_method,
+        people_count=payload.people_count,
     )
     return updated
 

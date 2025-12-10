@@ -24,6 +24,12 @@ class OrderCreate(BaseModel):
     email: str = Field(..., description="Email пользователя для отправки билета")
 
 
+class OrderUpdate(BaseModel):
+    qrcode: str | None = Field(None, description="QR-код заказа (опционально)")
+    payment_method: str | None = Field(None, description="Способ оплаты")
+    people_count: int | None = Field(None, ge=0, description="Количество человек")
+
+
 class UserUpdate(BaseModel):
     display_name: str | None = Field(None, description="Имя пользователя")
     phone: str | None = Field(None, description="Телефон пользователя")

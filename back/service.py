@@ -9,10 +9,12 @@ from crud import (
     add_slug_to_db,
     create_order_in_db,
     get_all_users_from_db,
+    get_all_orders_from_db,
     get_event_by_id,
     get_url_from_db,
     get_event_from_db,
     update_user_in_db,
+    update_order_in_db,
     get_events_between_dates,
 )
 from exceptions import NoUrlFoundException, SlugAlreadyExists
@@ -65,7 +67,7 @@ async def get_event_by_slug(
 
 
 def _generate_qr_link(data: str, size: str = "300x300") -> str:
-    """Generate a QR code image link using an external service."""
+   
     encoded = quote_plus(data)
     return f"https://api.qrserver.com/v1/create-qr-code/?size={size}&data={encoded}"
 
@@ -142,7 +144,7 @@ async def create_order(
             "seats_total": event.seats_total,
             "account_id": event.account_id,
         },
-        "qrcode": qrcode,
+        "qrcode": qr_link,
         "payment_method": payment_method,
         "people_count": people_count,
     }
@@ -182,6 +184,10 @@ async def get_all_users():
     return await get_all_users_from_db()
 
 
+async def get_all_orders():
+    return await get_all_orders_from_db()
+
+
 async def get_event_details_by_id(event_id: int) -> dict:
     event = await get_event_from_db(event_id)
     if not event:
@@ -212,6 +218,29 @@ async def update_user(
         "created_at": user.created_at,
     }
 
+
+async def update_order(
+    order_id: int,
+    qrcode: str | None = None,
+    payment_method: str | None = None,
+    people_count: int | None = None,
+):
+    order = await update_order_in_db(
+        order_id=order_id,
+        qrcode=qrcode,
+        payment_method=payment_method,
+        people_count=people_count,
+    )
+    if not order:
+        raise NoUrlFoundException  # reuse for 404
+    return {
+        "id": order.id,
+        "event_id": order.event_id,
+        "qrcode": order.qrcode,
+        "payment_method": order.payment_method,
+        "people_count": order.people_count,
+    }
+    
 def get_preview():
     return {"data": [
         "https://i.ytimg.com/vi/GWqJGYUjxHI/maxresdefault.jpg", 

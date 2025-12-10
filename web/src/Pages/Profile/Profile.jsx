@@ -23,8 +23,7 @@ function Profile({ onNavigate }) {
     const unsubscribe = onAuthStateChange(async (user) => {
       if (user) {
         setUser(user);
-        // Используем данные из user (они уже содержат данные профиля после входа)
-        // Если данных нет, пытаемся загрузить с бэкенда
+
         if (user.name || user.profileImage) {
           setUserData(user);
           setFormData({
@@ -32,7 +31,7 @@ function Profile({ onNavigate }) {
             email: user.email || ''
           });
         } else {
-          // Загружаем полные данные профиля с бэкенда
+
           try {
             const profileData = await getUserProfile();
             const fullUserData = {
@@ -48,7 +47,7 @@ function Profile({ onNavigate }) {
             });
           } catch (error) {
             console.error('Ошибка загрузки профиля:', error);
-            // Если не удалось загрузить с бэкенда, используем данные из Firebase
+
             const fallbackUserData = {
               ...user,
               name: user.name || '',
@@ -64,7 +63,7 @@ function Profile({ onNavigate }) {
         }
         setLoading(false);
       } else {
-        // Если пользователь не авторизован, очищаем состояние и перенаправляем на страницу входа
+
         setUser(null);
         setUserData(null);
         setFormData({
@@ -103,13 +102,11 @@ function Profile({ onNavigate }) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Проверка типа файла
     if (!file.type || !file.type.startsWith('image/')) {
       setError('Выберите изображение');
       return;
     }
 
-    // Проверка размера (максимум 2MB для data URL, чтобы не перегружать Firestore)
     if (file.size > 2 * 1024 * 1024) {
       setError('Размер файла не должен превышать 2MB');
       return;
@@ -117,10 +114,8 @@ function Profile({ onNavigate }) {
 
     setError('');
 
-    // Преобразуем файл в data URL (base64)
     const reader = new FileReader();
     reader.onloadend = () => {
-      // reader.result содержит data URL (например: "data:image/jpeg;base64,/9j/4AAQ...")
       setCustomAvatarDataUrl(reader.result);
     };
     reader.onerror = () => {
@@ -145,8 +140,8 @@ function Profile({ onNavigate }) {
     if (name.trim().length > 50) {
       return 'Имя слишком длинное (максимум 50 символов)';
     }
-    if (!/^[a-zA-Zа-яА-ЯёЁ\s-]+$/.test(name.trim())) {
-      return 'Имя может содержать только буквы, пробелы и дефисы';
+    if (!/^[а-яА-ЯёЁ\s-]+$/.test(name.trim())) {
+      return 'Имя может содержать только русские буквы, пробелы и дефисы';
     }
     return '';
   };
@@ -155,7 +150,6 @@ function Profile({ onNavigate }) {
     setError('');
     setSuccess('');
     
-    // Валидация имени
     const nameError = validateName(formData.name);
     if (nameError) {
       setError(nameError);
@@ -167,22 +161,18 @@ function Profile({ onNavigate }) {
     try {
       const updates = {};
 
-      // Обновляем имя (только если оно изменилось и валидно)
       const trimmedName = formData.name.trim();
       if (trimmedName !== (userData?.name || '').trim()) {
         updates.name = trimmedName;
       }
 
-      // Сохраняем аватар как data URL (base64)
       if (customAvatarDataUrl) {
         updates.profileImage = customAvatarDataUrl;
       }
 
-      // Сохраняем изменения
       if (Object.keys(updates).length > 0) {
         const updatedProfileData = await updateUserProfile(updates);
 
-        // Обновляем локальное состояние с данными, полученными с бэкенда
         const updatedUserData = {
           ...userData,
           ...updatedProfileData
@@ -209,22 +199,18 @@ function Profile({ onNavigate }) {
   const handleLogout = async () => {
     setLoading(true);
     try {
-      // Очищаем локальное состояние перед выходом
       setUser(null);
       setUserData(null);
       setFormData({
         name: '',
-        username: '',
         email: ''
       });
       setCustomAvatarDataUrl(null);
       
-      // Выполняем выход
       await logoutUser();
       
-      // Небольшая задержка для обновления состояния во всех компонентах
+      
       setTimeout(() => {
-        // После выхода перенаправляем на страницу входа
         if (onNavigate) {
           onNavigate('login');
         }
@@ -249,11 +235,10 @@ function Profile({ onNavigate }) {
   }
 
   if (!user) {
-    return null; // Редирект Сѓже произошел
+    return null;
   }
 
-  // Используем новый аватар из превью или сохраненный в профиле
-  // Data URL может быть как из customAvatarDataUrl (новый, еще не сохраненный), так и из userData.profileImage (Сѓже сохраненный)
+
   const avatarUrl = customAvatarDataUrl || userData?.profileImage || null;
 
   return (

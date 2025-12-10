@@ -145,7 +145,7 @@ export const registerUser = async (email, password, userData = {}) => {
     saveUserToStorage(currentUser);
     notifyListeners(currentUser);
     
-    if (userData.name || userData.username || userData.profileImage) {
+    if (userData.name || userData.profileImage) {
       await updateUserProfileAfterRegistration(userData);
     }
     
@@ -160,9 +160,6 @@ const updateUserProfileAfterRegistration = async (userData) => {
     const updateData = {};
     if (userData.name) {
       updateData.display_name = userData.name;
-    }
-    if (userData.username) {
-      updateData.username = userData.username;
     }
     if (userData.profileImage) {
       updateData.profile_image = userData.profileImage;
@@ -184,7 +181,6 @@ const updateUserProfileAfterRegistration = async (userData) => {
         // Маппинг полей бэкенда на фронтенд
         const mappedData = {
           name: updatedData.display_name || updatedData.name,
-          username: updatedData.username,
           email: updatedData.email,
           profileImage: updatedData.profile_image || updatedData.profileImage,
         };
@@ -244,7 +240,6 @@ export const getUserProfile = async () => {
     // Маппинг полей бэкенда на фронтенд
     const mappedData = {
       name: profileData.display_name || profileData.name,
-      username: profileData.username,
       email: profileData.email,
       profileImage: profileData.profile_image || profileData.profileImage,
     };
@@ -278,14 +273,6 @@ export const updateUserProfile = async (profileData) => {
       if (trimmedName !== '') {
         // Убеждаемся, что это строка
         finalData.display_name = String(trimmedName);
-      }
-    }
-    
-    // Обработка username (если нужно)
-    if (profileData.username !== undefined && profileData.username !== null) {
-      const trimmedUsername = String(profileData.username).trim();
-      if (trimmedUsername !== '') {
-        finalData.username = String(trimmedUsername);
       }
     }
     
@@ -381,7 +368,6 @@ export const updateUserProfile = async (profileData) => {
     // Маппинг полей бэкенда на фронтенд
     const mappedData = {
       name: updatedData.display_name || updatedData.name,
-      username: updatedData.username,
       email: updatedData.email,
       profileImage: updatedData.profile_image || updatedData.profileImage,
     };

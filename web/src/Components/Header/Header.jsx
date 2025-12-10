@@ -183,13 +183,6 @@ function Header({ onNavigate, currentPage = 'home' }) {
             Мои события
           </button>
           <button
-            className="header-action-btn my-events-btn"
-            onClick={() => handleProtectedNavigate('messages')}
-            type="button"
-          >
-            Сообщения
-          </button>
-          <button
             className={`header-action-btn login-btn ${isAuthenticated ? 'is-authenticated' : 'is-guest'}`}
             onClick={handleLoginClick}
             aria-label={isAuthenticated ? 'Перейти в профиль' : 'Войти в аккаунт'}
@@ -233,10 +226,6 @@ function Header({ onNavigate, currentPage = 'home' }) {
           </button>
           <button className="mobile-nav-item" onClick={() => handleProtectedNavigate('my-events')} type="button">
             <span>Мои события</span>
-            <span className="mobile-nav-glow" aria-hidden="true" />
-          </button>
-          <button className="mobile-nav-item" onClick={() => handleProtectedNavigate('messages')} type="button">
-            <span>Сообщения</span>
             <span className="mobile-nav-glow" aria-hidden="true" />
           </button>
           {userData?.role === 'admin' && (

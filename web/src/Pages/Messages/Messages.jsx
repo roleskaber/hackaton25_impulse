@@ -107,7 +107,9 @@ function Messages({ onNavigate }) {
       <div className="messages-page">
         <div className="messages-card empty">
           <p>Пока нет уведомлений. Мы покажем события, которые начнутся в течение 24 часов.</p>
-          <button type="button" onClick={() => onNavigate?.('home')}>Вернуться к афише</button>
+          <button className="header-action-btn" type="button" onClick={() => onNavigate?.('home')}>
+            Вернуться к афише
+          </button>
         </div>
       </div>
     );

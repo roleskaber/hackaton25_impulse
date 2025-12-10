@@ -1,7 +1,6 @@
 
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
-
 from ai_service import expect_ai
 from database.db import engine, new_session
 from database.models import Base, User, Event
@@ -12,7 +11,8 @@ from service import (
     create_order,
     update_user,
     get_event_details_by_id,
-    list_events_between_dates
+    list_events_between_dates,
+    get_preview
 )
 from auth_services import (
     login_user,
@@ -142,6 +142,9 @@ async def get_event_by_slug(event_id: int):
     try:
         event = await get_event_details_by_id(event_id=event_id)
     except NoUrlFoundException:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Impulse query err: Event not found")
     return event
 
+@app.get("/preview")
+def prewiew():
+    return get_preview()

@@ -25,12 +25,28 @@ from auth_services import (
 from exceptions import NoUrlFoundException
 from fastapi import Depends
 from datatypes import *
+from dependencies import get_current_user
+from crud import get_user_by_email, update_user_in_db
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     async with engine.begin() as connection: 
        await connection.run_sync(Base.metadata.create_all)
+    # Добавляем недостающие колонки если их нет (отдельная транзакция)
+    from sqlalchemy import text
+    try:
+        async with engine.begin() as conn:
+            # Проверяем и добавляем колонку profile_image
+            result = await conn.execute(text("""
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name='users' AND column_name='profile_image'
+            """))
+            if result.scalar() is None:
+                await conn.execute(text("ALTER TABLE users ADD COLUMN profile_image TEXT"))
+    except Exception as e:
+        print(f"Warning: Could not add columns (they might already exist): {e}")
     yield
 
 
@@ -66,7 +82,13 @@ async def create_event(event: EventCreate):
 
 @app.post("/auth/register")
 async def register(request: RegisterRequest):
-    return await register_user(email=request.email, password=request.password)
+    firebase_data = await register_user(email=request.email, password=request.password)
+    try:
+        from crud import create_user_in_db
+        await create_user_in_db(email=request.email)
+    except Exception:
+        pass
+    return firebase_data
 
 
 @app.post("/auth/login")
@@ -122,8 +144,47 @@ async def get_users():
         ]
 
 
+@app.get("/users/me")
+async def get_current_user_profile(current_user: User = Depends(get_current_user)):
+    return {
+        "id": current_user.id,
+        "email": current_user.email,
+        "display_name": current_user.display_name,
+        "phone": current_user.phone,
+        "profile_image": current_user.profile_image,
+        "role": current_user.role,
+        "created_at": current_user.created_at,
+    }
+
+
+@app.patch("/users/me")
+async def update_current_user_profile(
+    payload: UserUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    updated = await update_user_in_db(
+        user_id=current_user.id,
+        display_name=payload.display_name,
+        phone=payload.phone,
+        role=payload.role,
+        profile_image=payload.profile_image,
+    )
+    if not updated:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    
+    return {
+        "id": updated.id,
+        "email": updated.email,
+        "display_name": updated.display_name,
+        "phone": updated.phone,
+        "profile_image": updated.profile_image,
+        "role": updated.role,
+        "created_at": updated.created_at,
+    }
+
+
 @app.patch("/users/{user_id}", dependencies=[Depends(require_api_key)])
-async def update_user(user_id: int, payload: UserUpdate):
+async def update_user_by_id(user_id: int, payload: UserUpdate):
     updated = await update_user(
         user_id=user_id,
         display_name=payload.display_name,
